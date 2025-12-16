@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Coins, Trash2 } from 'lucide-react';
+import { Coins, Trash2, Pencil } from 'lucide-react';
 import { Reward, UserData } from '../types';
 
 const RewardCard: React.FC<{ 
@@ -9,7 +9,8 @@ const RewardCard: React.FC<{
   onAction: (r: Reward) => void;
   isParentMode?: boolean;
   onDelete?: (id: string) => void;
-}> = ({ reward, user, onAction, isParentMode, onDelete }) => {
+  onEdit?: (r: Reward) => void;
+}> = ({ reward, user, onAction, isParentMode, onDelete, onEdit }) => {
   const isOwned = user?.inventory?.includes(reward.id) || false;
   const canAfford = (user?.balance || 0) >= reward.cost;
   
@@ -48,13 +49,25 @@ const RewardCard: React.FC<{
 
   return (
     <div className="bg-white rounded-2xl p-3 border-2 border-slate-100 shadow-md flex flex-col items-center text-center relative overflow-hidden group">
-      {isParentMode && onDelete && (
-        <button 
-          onClick={() => onDelete(reward.id)}
-          className="absolute top-2 right-2 p-1.5 bg-red-100 text-red-500 rounded-full z-10 hover:bg-red-200"
-        >
-          <Trash2 className="w-3 h-3" />
-        </button>
+      {isParentMode && (
+        <div className="absolute top-2 right-2 flex gap-1 z-10">
+          {onEdit && (
+             <button 
+              onClick={() => onEdit(reward)}
+              className="p-1.5 bg-blue-100 text-blue-500 rounded-full hover:bg-blue-200"
+            >
+              <Pencil className="w-3 h-3" />
+            </button>
+          )}
+          {onDelete && (
+            <button 
+              onClick={() => onDelete(reward.id)}
+              className="p-1.5 bg-red-100 text-red-500 rounded-full hover:bg-red-200"
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
+          )}
+        </div>
       )}
 
       <div className="w-full aspect-square bg-gradient-to-br from-indigo-50 to-pink-50 rounded-xl mb-3 flex items-center justify-center text-5xl relative">
