@@ -310,6 +310,11 @@ const App = () => {
      if (data.speciesLibrary) setSpeciesLibrary(data.speciesLibrary);
   };
 
+  // --- UPDATE TASK ---
+  const handleUpdateTask = (updatedTask: Task) => {
+     setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
+  };
+
   // --- CHEAT FUNCTIONS ---
   const handleCheatMoney = () => {
      setUser(prev => ({ ...prev, balance: prev.balance + 1000 }));
@@ -373,6 +378,7 @@ const App = () => {
           rewards={rewards}
           speciesLibrary={speciesLibrary}
           onAddTask={(t: Task) => setTasks([...tasks, t])}
+          onUpdateTask={handleUpdateTask}
           onDeleteTask={(id: string) => setTasks(tasks.filter(t => t.id !== id))}
           onAddReward={(r: Reward) => setRewards([...rewards, r])}
           onDeleteReward={(id: string) => setRewards(rewards.filter(r => r.id !== id))}
