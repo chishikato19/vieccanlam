@@ -217,6 +217,13 @@ const App = () => {
     }));
   };
 
+  const handleRemoveFromInventory = (itemId: string) => {
+     setUser(prev => ({
+        ...prev,
+        inventory: prev.inventory.filter(id => id !== itemId)
+     }));
+  };
+
   const handleFeedPet = (food: FoodItem) => {
     if (user.balance < food.cost) {
       alert("Bé không đủ xu để mua thức ăn này rồi!");
@@ -267,6 +274,14 @@ const App = () => {
      }));
   };
 
+  // Hàm update dùng chung logic với Add (ghi đè theo Key)
+  const handleUpdateSpecies = (updatedSpecies: PetSpecies) => {
+      setSpeciesLibrary(prev => ({
+        ...prev,
+        [updatedSpecies.id]: updatedSpecies
+      }));
+  };
+
   const handleAdopt = (speciesId: string) => {
      const species = speciesLibrary[speciesId];
      if (!species) return;
@@ -310,9 +325,13 @@ const App = () => {
      if (data.speciesLibrary) setSpeciesLibrary(data.speciesLibrary);
   };
 
-  // --- UPDATE TASK ---
+  // --- UPDATE TASK & REWARD ---
   const handleUpdateTask = (updatedTask: Task) => {
      setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
+  };
+
+  const handleUpdateReward = (updatedReward: Reward) => {
+     setRewards(prev => prev.map(r => r.id === updatedReward.id ? updatedReward : r));
   };
 
   // --- CHEAT FUNCTIONS ---
@@ -380,10 +399,15 @@ const App = () => {
           onAddTask={(t: Task) => setTasks([...tasks, t])}
           onUpdateTask={handleUpdateTask}
           onDeleteTask={(id: string) => setTasks(tasks.filter(t => t.id !== id))}
+          
           onAddReward={(r: Reward) => setRewards([...rewards, r])}
+          onUpdateReward={handleUpdateReward}
           onDeleteReward={(id: string) => setRewards(rewards.filter(r => r.id !== id))}
+          
           onUpdatePet={handleUpdateActivePet}
           onAddSpecies={handleAddSpecies}
+          onUpdateSpecies={handleUpdateSpecies}
+
           onUpdatePin={(p: string) => setUser({ ...user, pin: p })}
           onUpdateUser={(u: UserData) => setUser(u)}
           onSyncData={handleSyncData}
@@ -489,8 +513,10 @@ const App = () => {
            <PetHome 
               user={user} 
               speciesLibrary={speciesLibrary}
+              rewards={rewards} // Truyền danh sách rewards
               onFeed={handleFeedPet} 
               onEquip={handleEquip}
+              onRemoveItem={handleRemoveFromInventory} // Truyền hàm xóa item
               onAddXp={handleCheatXp}
               onSwitchPet={(id) => setUser({...user, activePetId: id})}
               onAdopt={handleAdopt}
