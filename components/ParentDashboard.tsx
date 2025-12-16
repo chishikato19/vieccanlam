@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Settings, X, Wand2, Plus, CheckCircle2, Eye, RefreshCcw, Save, KeyRound, User, ToggleLeft, ToggleRight, Cloud, Download, Upload } from 'lucide-react';
+import { Settings, X, Wand2, Plus, CheckCircle2, Eye, RefreshCcw, Save, KeyRound, User, ToggleLeft, ToggleRight, Cloud, Download, Upload, Pencil } from 'lucide-react';
 import TaskCard from './TaskCard';
 import RewardCard from './RewardCard';
 import IconPicker from './IconPicker';
@@ -18,9 +18,11 @@ const ParentDashboard = ({
   onUpdateTask, 
   onDeleteTask, 
   onAddReward, 
+  onUpdateReward,
   onDeleteReward,
   onUpdatePet,
   onAddSpecies,
+  onUpdateSpecies,
   onUpdatePin,
   onUpdateUser,
   onSyncData, // Callback khi tải dữ liệu từ cloud về
@@ -44,6 +46,7 @@ const ParentDashboard = ({
   const [isDaily, setIsDaily] = useState(true);
 
   // Reward Form State
+  const [editingRewardId, setEditingRewardId] = useState<string | null>(null);
   const [newRewardTitle, setNewRewardTitle] = useState('');
   const [newRewardCost, setNewRewardCost] = useState(100);
   const [newRewardIcon, setNewRewardIcon] = useState('🎁');
@@ -51,6 +54,7 @@ const ParentDashboard = ({
 
   // Pet Creation State
   const [isCreatingSpecies, setIsCreatingSpecies] = useState(false);
+  const [editingSpeciesId, setEditingSpeciesId] = useState<string | null>(null);
   const [newSpeciesName, setNewSpeciesName] = useState('');
   const [newSpeciesImages, setNewSpeciesImages] = useState(['🥚', '🐥', '🐓', '🦅']);
 
@@ -64,13 +68,13 @@ const ParentDashboard = ({
     setNewTaskIcon(random.icon);
   };
 
+  // --- TASK HANDLERS ---
   const handleStartEditTask = (task: Task) => {
     setEditingTaskId(task.id);
     setNewTaskTitle(task.title);
     setNewTaskPoints(task.points);
     setNewTaskIcon(task.icon);
     setIsDaily(task.isDaily);
-    // Scroll to top of list if needed
     const formElement = document.getElementById('task-form');
     if (formElement) formElement.scrollIntoView({ behavior: 'smooth' });
   };
@@ -88,7 +92,6 @@ const ParentDashboard = ({
     if (!newTaskTitle) return;
 
     if (editingTaskId) {
-      // Logic cập nhật
       const originalTask = tasks.find((t: Task) => t.id === editingTaskId);
       onUpdateTask({
         ...originalTask,
@@ -98,9 +101,8 @@ const ParentDashboard = ({
         isDaily: isDaily
       });
       alert('Đã cập nhật nhiệm vụ!');
-      handleCancelEditTask(); // Reset form
+      handleCancelEditTask();
     } else {
-      // Logic thêm mới
       onAddTask({
         id: generateId(),
         title: newTaskTitle,
@@ -114,62 +116,128 @@ const ParentDashboard = ({
     }
   };
 
+  // --- REWARD HANDLERS ---
+  const handleStartEditReward = (reward: Reward) => {
+    setEditingRewardId(reward.id);
+    setNewRewardTitle(reward.title);
+    setNewRewardCost(reward.cost);
+    setNewRewardIcon(reward.image);
+    setRewardType(reward.type);
+    const formElement = document.getElementById('reward-form');
+    if (formElement) formElement.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleCancelEditReward = () => {
+    setEditingRewardId(null);
+    setNewRewardTitle('');
+    setNewRewardCost(100);
+    setNewRewardIcon('🎁');
+    setRewardType('toy');
+  };
+
   const submitReward = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newRewardTitle) return;
-    onAddReward({
-      id: generateId(),
-      title: newRewardTitle,
-      cost: newRewardCost,
-      image: newRewardIcon,
-      type: rewardType
-    });
-    setNewRewardTitle('');
-    setNewRewardIcon('🎁');
+
+    if (editingRewardId) {
+       onUpdateReward({
+         id: editingRewardId,
+         title: newRewardTitle,
+         cost: newRewardCost,
+         image: newRewardIcon,
+         type: rewardType
+       });
+       alert('Đã cập nhật phần thưởng!');
+       handleCancelEditReward();
+    } else {
+       onAddReward({
+         id: generateId(),
+         title: newRewardTitle,
+         cost: newRewardCost,
+         image: newRewardIcon,
+         type: rewardType
+       });
+       setNewRewardTitle('');
+       setNewRewardIcon('🎁');
+    }
+  };
+
+  // --- SPECIES HANDLERS ---
+  const handleStartEditSpecies = (species: PetSpecies) => {
+     setEditingSpeciesId(species.id);
+     setNewSpeciesName(species.name);
+     // Lấy ảnh từ stages hoặc default nếu thiếu
+     const images = species.stages.map(s => s.image);
+     // Đảm bảo có đủ 4 ảnh
+     while(images.length < 4) images.push('?');
+     setNewSpeciesImages(images);
+     setIsCreatingSpecies(true);
+  };
+
+  const handleCancelEditSpecies = () => {
+     setIsCreatingSpecies(false);
+     setEditingSpeciesId(null);
+     setNewSpeciesName('');
+     setNewSpeciesImages(['🥚', '🐥', '🐓', '🦅']);
   };
 
   const submitSpecies = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSpeciesName) return;
-    const speciesId = 'custom_' + generateId();
-    const newSpecies: PetSpecies = {
-      id: speciesId,
-      name: newSpeciesName,
-      isCustom: true,
-      cost: 500, // Default cost for custom
-      stages: [
-        { minLevel: 1, image: newSpeciesImages[0], name: 'Trứng Bí Ẩn', dialogue: ['Chào mừng!', 'Thế giới rộng lớn quá!'] },
-        { minLevel: 5, image: newSpeciesImages[1], name: 'Tập đi', dialogue: ['Chơi với tớ đi!', 'Đói quá!'] },
-        { minLevel: 15, image: newSpeciesImages[2], name: 'Trưởng thành', dialogue: ['Sức mạnh!', 'Bảo vệ bạn!'] },
-        { minLevel: 30, image: newSpeciesImages[3], name: 'Huyền thoại', dialogue: ['Ta là vô địch!', 'Cảm ơn đã nuôi nấng!'] }
-      ]
-    };
-    onAddSpecies(newSpecies);
-    setIsCreatingSpecies(false);
-    setNewSpeciesName('');
-    alert('Đã thêm loài vật mới thành công!');
+
+    let speciesToSave: PetSpecies;
+
+    if (editingSpeciesId) {
+        // Cập nhật loài đã có
+        const original = speciesLibrary[editingSpeciesId];
+        speciesToSave = {
+            ...original,
+            name: newSpeciesName,
+            stages: original.stages.map((stage: any, index: number) => ({
+                ...stage,
+                image: newSpeciesImages[index] || stage.image // Cập nhật ảnh tương ứng
+            }))
+        };
+        onUpdateSpecies(speciesToSave);
+        alert(`Đã cập nhật loài ${newSpeciesName}!`);
+    } else {
+        // Tạo mới hoàn toàn
+        const speciesId = 'custom_' + generateId();
+        speciesToSave = {
+          id: speciesId,
+          name: newSpeciesName,
+          isCustom: true,
+          cost: 500,
+          stages: [
+            { minLevel: 1, image: newSpeciesImages[0], name: 'Trứng Bí Ẩn', dialogue: ['Chào mừng!', 'Thế giới rộng lớn quá!'] },
+            { minLevel: 5, image: newSpeciesImages[1], name: 'Tập đi', dialogue: ['Chơi với tớ đi!', 'Đói quá!'] },
+            { minLevel: 15, image: newSpeciesImages[2], name: 'Trưởng thành', dialogue: ['Sức mạnh!', 'Bảo vệ bạn!'] },
+            { minLevel: 30, image: newSpeciesImages[3], name: 'Huyền thoại', dialogue: ['Ta là vô địch!', 'Cảm ơn đã nuôi nấng!'] }
+          ]
+        };
+        onAddSpecies(speciesToSave);
+        alert('Đã thêm loài vật mới thành công!');
+    }
+    
+    handleCancelEditSpecies();
   };
 
+  // --- CLOUD HANDLERS ---
   const handleSaveToCloud = async () => {
     const cleanUrl = scriptUrl.trim();
     if (!cleanUrl) {
       alert("Vui lòng nhập URL Google Script!");
       return;
     }
-    
-    // Lưu URL trước
     onUpdateUser({ ...user, googleScriptUrl: cleanUrl });
-    
     setIsSyncing(true);
     try {
-      // Chuẩn bị dữ liệu tổng
       const backupData = {
         user: { ...user, googleScriptUrl: cleanUrl },
         tasks,
         rewards,
         speciesLibrary
       };
-      
       await saveToCloud(cleanUrl, backupData);
       alert("Đã gửi yêu cầu lưu dữ liệu lên đám mây thành công!");
     } catch (e) {
@@ -185,9 +253,7 @@ const ParentDashboard = ({
       alert("Vui lòng nhập URL Google Script!");
       return;
     }
-    
     onUpdateUser({ ...user, googleScriptUrl: cleanUrl });
-
     setIsSyncing(true);
     try {
       const data = await loadFromCloud(cleanUrl);
@@ -446,12 +512,22 @@ const ParentDashboard = ({
 
         {activeTab === 'rewards' && (
           <div className="space-y-6">
-            <form onSubmit={submitReward} className="bg-yellow-50 p-4 rounded-2xl border border-yellow-100 space-y-3">
-              <h3 className="font-bold text-yellow-800">Thêm phần thưởng mới</h3>
+            <form id="reward-form" onSubmit={submitReward} className={`p-4 rounded-2xl border space-y-3 transition-colors ${editingRewardId ? 'bg-orange-50 border-orange-200' : 'bg-yellow-50 border-yellow-100'}`}>
+              <div className="flex justify-between items-center">
+                 <h3 className={`font-bold ${editingRewardId ? 'text-orange-800' : 'text-yellow-800'}`}>
+                    {editingRewardId ? 'Chỉnh sửa phần thưởng' : 'Thêm phần thưởng mới'}
+                 </h3>
+                 {editingRewardId && (
+                    <button type="button" onClick={handleCancelEditReward} className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-lg">
+                       Hủy
+                    </button>
+                 )}
+              </div>
+
               <input 
                   type="text" 
                   placeholder="Tên phần thưởng" 
-                  className="w-full p-3 rounded-xl border border-yellow-200 outline-none focus:ring-2 focus:ring-yellow-400"
+                  className={`w-full p-3 rounded-xl border outline-none focus:ring-2 ${editingRewardId ? 'border-orange-200 focus:ring-orange-400' : 'border-yellow-200 focus:ring-yellow-400'}`}
                   value={newRewardTitle}
                   onChange={(e) => setNewRewardTitle(e.target.value)}
                />
@@ -459,7 +535,7 @@ const ParentDashboard = ({
                 <input 
                   type="number" 
                   placeholder="Giá xu" 
-                  className="w-24 p-3 rounded-xl border border-yellow-200 outline-none text-center"
+                  className={`w-24 p-3 rounded-xl border outline-none text-center ${editingRewardId ? 'border-orange-200' : 'border-yellow-200'}`}
                   value={newRewardCost}
                   onChange={(e) => setNewRewardCost(Number(e.target.value))}
                 />
@@ -469,7 +545,7 @@ const ParentDashboard = ({
                   onSelect={setNewRewardIcon} 
                 />
                 <select 
-                  className="flex-1 p-3 rounded-xl border border-yellow-200 outline-none bg-white"
+                  className={`flex-1 p-3 rounded-xl border outline-none bg-white ${editingRewardId ? 'border-orange-200' : 'border-yellow-200'}`}
                   value={rewardType}
                   onChange={(e) => setRewardType(e.target.value as RewardType)}
                 >
@@ -479,8 +555,12 @@ const ParentDashboard = ({
                   <option value="frame">Khung</option>
                 </select>
               </div>
-              <button type="submit" className="w-full py-3 bg-yellow-500 text-white rounded-xl font-bold hover:bg-yellow-600 flex items-center justify-center gap-2">
-                <Plus className="w-5 h-5" /> Thêm phần thưởng
+              <button 
+                type="submit" 
+                className={`w-full py-3 text-white rounded-xl font-bold hover:opacity-90 flex items-center justify-center gap-2 ${editingRewardId ? 'bg-orange-500' : 'bg-yellow-500'}`}
+              >
+                {editingRewardId ? <Save className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+                {editingRewardId ? 'Lưu thay đổi' : 'Thêm phần thưởng'}
               </button>
             </form>
 
@@ -492,6 +572,7 @@ const ParentDashboard = ({
                   user={user}
                   onAction={() => {}} 
                   onDelete={onDeleteReward} 
+                  onEdit={handleStartEditReward}
                   isParentMode={true} 
                 />
               ))}
@@ -520,11 +601,22 @@ const ParentDashboard = ({
                       {Object.values(speciesLibrary).map((species: any) => (
                         <div 
                           key={species.id} 
-                          className={`border-2 rounded-xl p-3 bg-white relative overflow-hidden flex gap-3 border-slate-100 opacity-80`}
+                          className={`border-2 rounded-xl p-3 bg-white relative overflow-hidden flex gap-3 border-slate-100`}
                         >
+                          <div className="absolute top-2 right-2">
+                              <button 
+                                onClick={() => handleStartEditSpecies(species)}
+                                className="p-2 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200"
+                                title="Chỉnh sửa loài này"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                          </div>
+                          
                           {species.isCustom && (
-                             <div className="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-[9px] font-bold px-1.5 py-0.5 rounded-bl">Tự tạo</div>
+                             <div className="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-[9px] font-bold px-1.5 py-0.5 rounded-bl mr-10">Tự tạo</div>
                           )}
+
                           <div className="flex-1">
                               <span className="font-bold text-slate-800 block mb-1">{species.name}</span>
                               <div className="flex gap-2">
@@ -578,10 +670,12 @@ const ParentDashboard = ({
                 </div>
               </>
             ) : (
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 animate-fade-in">
+              <div className={`p-4 rounded-2xl border animate-fade-in ${editingSpeciesId ? 'bg-orange-50 border-orange-200' : 'bg-white border-slate-200'}`}>
                  <div className="flex justify-between items-center mb-4 border-b pb-2">
-                   <h3 className="font-bold text-lg">Tạo loài vật mới</h3>
-                   <button onClick={() => setIsCreatingSpecies(false)} className="text-slate-400 font-bold text-sm">Hủy</button>
+                   <h3 className={`font-bold text-lg ${editingSpeciesId ? 'text-orange-800' : 'text-slate-800'}`}>
+                      {editingSpeciesId ? 'Chỉnh sửa loài vật' : 'Tạo loài vật mới'}
+                   </h3>
+                   <button onClick={handleCancelEditSpecies} className="text-slate-400 font-bold text-sm bg-white px-2 py-1 rounded border">Hủy</button>
                  </div>
                  
                  <form onSubmit={submitSpecies} className="space-y-4">
@@ -599,7 +693,7 @@ const ParentDashboard = ({
                     
                     <div className="grid grid-cols-2 gap-3">
                        {[0, 1, 2, 3].map((idx) => (
-                          <div key={idx} className="bg-slate-50 p-2 rounded-xl border border-slate-100 text-center">
+                          <div key={idx} className="bg-white p-2 rounded-xl border border-slate-100 text-center">
                              <span className="text-[10px] text-slate-400 block mb-1">
                                 {idx === 0 ? 'Trứng (Lv1)' : idx === 1 ? 'Bé con (Lv5)' : idx === 2 ? 'Lớn (Lv15)' : 'Thần (Lv30)'}
                              </span>
@@ -620,8 +714,11 @@ const ParentDashboard = ({
                     </div>
                     <p className="text-xs text-slate-400 italic">Mẹo: Sử dụng bàn phím Emoji trên điện thoại để nhập hình ảnh.</p>
                     
-                    <button type="submit" className="w-full py-3 bg-purple-600 text-white rounded-xl font-bold flex items-center justify-center gap-2">
-                       <Save className="w-5 h-5" /> Lưu loài vật
+                    <button 
+                      type="submit" 
+                      className={`w-full py-3 text-white rounded-xl font-bold flex items-center justify-center gap-2 ${editingSpeciesId ? 'bg-orange-500' : 'bg-purple-600'}`}
+                    >
+                       <Save className="w-5 h-5" /> {editingSpeciesId ? 'Lưu thay đổi' : 'Lưu loài vật'}
                     </button>
                  </form>
               </div>
@@ -634,4 +731,3 @@ const ParentDashboard = ({
 };
 
 export default ParentDashboard;
-
