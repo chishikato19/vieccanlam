@@ -76,13 +76,15 @@ const PetHome = ({
 
          {/* STATS + CHEAT XP BUTTON */}
          <div className="bg-white/60 backdrop-blur rounded-2xl p-3 w-full max-w-xs mt-6 border border-white shadow-sm relative">
-            <button 
-               onClick={onAddXp}
-               className="absolute -right-2 -top-2 bg-blue-500 text-white p-1 rounded-full shadow-lg z-10 active:scale-90 transition-transform"
-               title="Hack: Tăng 100 XP"
-            >
-               <Zap className="w-4 h-4" />
-            </button>
+            {user.isTestingMode && (
+               <button 
+                  onClick={onAddXp}
+                  className="absolute -right-2 -top-2 bg-blue-500 text-white p-1 rounded-full shadow-lg z-10 active:scale-90 transition-transform"
+                  title="Hack: Tăng 100 XP"
+               >
+                  <Zap className="w-4 h-4" />
+               </button>
+            )}
 
             <div className="flex justify-between items-end mb-1">
                <span className="font-bold text-slate-700">{currentStage.name}</span>

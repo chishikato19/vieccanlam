@@ -1,11 +1,12 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ListTodo, Heart, ShoppingBag, Lock } from 'lucide-react';
 
 import { Task, Reward, PetSpecies, UserData, FoodItem, PetState } from './types';
 import { INITIAL_TASKS, INITIAL_REWARDS, INITIAL_PET_SPECIES } from './data';
 import { triggerConfetti, generateId, calculateMaxXp } from './utils';
+import { saveToCloud } from './cloud';
 
 import Header from './components/Header';
 import TaskCard from './components/TaskCard';
@@ -29,13 +30,18 @@ const App = () => {
     inventory: ['default'],
     pets: [],
     activePetId: '',
-    pin: '0000'
+    pin: '0000',
+    isTestingMode: false
   });
 
   const [showParentGate, setShowParentGate] = useState(false);
   const [isParentMode, setIsParentMode] = useState(false);
   const [shopFilter, setShopFilter] = useState<'all' | 'items' | 'cosmetics'>('items');
   const [inputPin, setInputPin] = useState('');
+  
+  // State quản lý trạng thái lưu cloud
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const isFirstLoad = useRef(true);
 
   // HUNGER DECAY LOGIC
   useEffect(() => {
@@ -69,12 +75,12 @@ const App = () => {
     return () => clearInterval(hungerInterval);
   }, []);
 
-  // Load/Save Logic
+  // Load/Save Logic (Local Storage)
   useEffect(() => {
-    const savedUser = localStorage.getItem('kiddo_user_v4');
-    const savedTasks = localStorage.getItem('kiddo_tasks_v4');
-    const savedRewards = localStorage.getItem('kiddo_rewards_v4');
-    const savedSpecies = localStorage.getItem('kiddo_species_v4');
+    const savedUser = localStorage.getItem('kiddo_user_v5'); // Bump version
+    const savedTasks = localStorage.getItem('kiddo_tasks_v5');
+    const savedRewards = localStorage.getItem('kiddo_rewards_v5');
+    const savedSpecies = localStorage.getItem('kiddo_species_v5');
     
     if (savedUser) {
       const parsedUser = JSON.parse(savedUser);
@@ -96,6 +102,11 @@ const App = () => {
          parsedUser.activePetId = initialPetId;
          delete (parsedUser as any).pet;
       }
+      // Migration for isTestingMode
+      if (parsedUser.isTestingMode === undefined) {
+         parsedUser.isTestingMode = false;
+      }
+
       setUser(parsedUser);
     } else {
       // First time user
@@ -116,21 +127,55 @@ const App = () => {
            hunger: 100
         }],
         activePetId: initialPetId,
-        pin: '0000'
+        pin: '0000',
+        isTestingMode: false
       });
     }
 
     if (savedTasks) setTasks(JSON.parse(savedTasks));
     if (savedRewards) setRewards(JSON.parse(savedRewards));
     if (savedSpecies) setSpeciesLibrary(JSON.parse(savedSpecies));
+    
+    // Đánh dấu đã load xong lần đầu để tránh auto-save chạy ngay khi mở app
+    setTimeout(() => { isFirstLoad.current = false; }, 1000);
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('kiddo_user_v4', JSON.stringify(user));
-    localStorage.setItem('kiddo_tasks_v4', JSON.stringify(tasks));
-    localStorage.setItem('kiddo_rewards_v4', JSON.stringify(rewards));
-    localStorage.setItem('kiddo_species_v4', JSON.stringify(speciesLibrary));
+    localStorage.setItem('kiddo_user_v5', JSON.stringify(user));
+    localStorage.setItem('kiddo_tasks_v5', JSON.stringify(tasks));
+    localStorage.setItem('kiddo_rewards_v5', JSON.stringify(rewards));
+    localStorage.setItem('kiddo_species_v5', JSON.stringify(speciesLibrary));
   }, [user, tasks, rewards, speciesLibrary]);
+
+  // --- AUTO SAVE TO CLOUD LOGIC ---
+  useEffect(() => {
+    // Không lưu nếu chưa load xong hoặc chưa có URL
+    if (isFirstLoad.current || !user.googleScriptUrl) return;
+
+    setSaveStatus('saving');
+
+    // Debounce: Chờ 3 giây sau lần thay đổi cuối cùng mới lưu
+    const timer = setTimeout(async () => {
+      try {
+        const backupData = {
+          user,
+          tasks,
+          rewards,
+          speciesLibrary
+        };
+        await saveToCloud(user.googleScriptUrl, backupData);
+        setSaveStatus('saved');
+        
+        // Reset về idle sau 2 giây
+        setTimeout(() => setSaveStatus('idle'), 2000);
+      } catch (e) {
+        console.error("Auto save failed", e);
+        setSaveStatus('error');
+      }
+    }, 3000); // 3 giây delay
+
+    return () => clearTimeout(timer);
+  }, [user, tasks, rewards, speciesLibrary]); // Theo dõi mọi thay đổi data
 
   // Actions
   const handleCompleteTask = (taskId: string, points: number) => {
@@ -257,6 +302,14 @@ const App = () => {
      }));
   };
 
+  // --- SYNC CALLBACK ---
+  const handleSyncData = (data: any) => {
+     if (data.user) setUser(data.user);
+     if (data.tasks) setTasks(data.tasks);
+     if (data.rewards) setRewards(data.rewards);
+     if (data.speciesLibrary) setSpeciesLibrary(data.speciesLibrary);
+  };
+
   // --- CHEAT FUNCTIONS ---
   const handleCheatMoney = () => {
      setUser(prev => ({ ...prev, balance: prev.balance + 1000 }));
@@ -309,6 +362,7 @@ const App = () => {
         user={user} 
         onOpenSettings={() => setShowParentGate(true)} 
         onAddMoney={handleCheatMoney}
+        saveStatus={saveStatus}
       />
 
       {/* PARENT MODE MODAL */}
@@ -325,6 +379,8 @@ const App = () => {
           onUpdatePet={handleUpdateActivePet}
           onAddSpecies={handleAddSpecies}
           onUpdatePin={(p: string) => setUser({ ...user, pin: p })}
+          onUpdateUser={(u: UserData) => setUser(u)}
+          onSyncData={handleSyncData}
           onClose={() => setIsParentMode(false)}
         />
       )}
