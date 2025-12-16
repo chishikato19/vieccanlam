@@ -14,7 +14,8 @@ const ParentDashboard = ({
   tasks, 
   rewards,
   speciesLibrary,
-  onAddTask, 
+  onAddTask,
+  onUpdateTask, 
   onDeleteTask, 
   onAddReward, 
   onDeleteReward,
@@ -36,6 +37,7 @@ const ParentDashboard = ({
   const [isSyncing, setIsSyncing] = useState(false);
 
   // Task Form State
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskPoints, setNewTaskPoints] = useState(10);
   const [newTaskIcon, setNewTaskIcon] = useState('⭐');
@@ -62,19 +64,54 @@ const ParentDashboard = ({
     setNewTaskIcon(random.icon);
   };
 
+  const handleStartEditTask = (task: Task) => {
+    setEditingTaskId(task.id);
+    setNewTaskTitle(task.title);
+    setNewTaskPoints(task.points);
+    setNewTaskIcon(task.icon);
+    setIsDaily(task.isDaily);
+    // Scroll to top of list if needed
+    const formElement = document.getElementById('task-form');
+    if (formElement) formElement.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleCancelEditTask = () => {
+    setEditingTaskId(null);
+    setNewTaskTitle('');
+    setNewTaskPoints(10);
+    setNewTaskIcon('⭐');
+    setIsDaily(true);
+  };
+
   const submitTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle) return;
-    onAddTask({
-      id: generateId(),
-      title: newTaskTitle,
-      points: newTaskPoints,
-      icon: newTaskIcon,
-      status: 'todo',
-      isDaily
-    });
-    setNewTaskTitle('');
-    setNewTaskIcon('⭐');
+
+    if (editingTaskId) {
+      // Logic cập nhật
+      const originalTask = tasks.find((t: Task) => t.id === editingTaskId);
+      onUpdateTask({
+        ...originalTask,
+        title: newTaskTitle,
+        points: newTaskPoints,
+        icon: newTaskIcon,
+        isDaily: isDaily
+      });
+      alert('Đã cập nhật nhiệm vụ!');
+      handleCancelEditTask(); // Reset form
+    } else {
+      // Logic thêm mới
+      onAddTask({
+        id: generateId(),
+        title: newTaskTitle,
+        points: newTaskPoints,
+        icon: newTaskIcon,
+        status: 'todo',
+        isDaily
+      });
+      setNewTaskTitle('');
+      setNewTaskIcon('⭐');
+    }
   };
 
   const submitReward = (e: React.FormEvent) => {
@@ -329,31 +366,43 @@ const ParentDashboard = ({
 
         {activeTab === 'tasks' && (
           <div className="space-y-6">
-            <form onSubmit={submitTask} className="bg-blue-50 p-4 rounded-2xl border border-blue-100 space-y-3">
-              <h3 className="font-bold text-blue-800">Thêm nhiệm vụ mới</h3>
+            <form id="task-form" onSubmit={submitTask} className={`p-4 rounded-2xl border space-y-3 transition-colors ${editingTaskId ? 'bg-orange-50 border-orange-200' : 'bg-blue-50 border-blue-100'}`}>
+              <div className="flex justify-between items-center">
+                 <h3 className={`font-bold ${editingTaskId ? 'text-orange-800' : 'text-blue-800'}`}>
+                   {editingTaskId ? 'Chỉnh sửa nhiệm vụ' : 'Thêm nhiệm vụ mới'}
+                 </h3>
+                 {editingTaskId && (
+                    <button type="button" onClick={handleCancelEditTask} className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-lg">
+                       Hủy
+                    </button>
+                 )}
+              </div>
+
               <div className="flex gap-2">
                  <input 
                     type="text" 
                     placeholder="Tên nhiệm vụ" 
-                    className="flex-1 p-3 rounded-xl border border-blue-200 outline-none focus:ring-2 focus:ring-blue-400"
+                    className={`flex-1 p-3 rounded-xl border outline-none focus:ring-2 ${editingTaskId ? 'border-orange-200 focus:ring-orange-400' : 'border-blue-200 focus:ring-blue-400'}`}
                     value={newTaskTitle}
                     onChange={(e) => setNewTaskTitle(e.target.value)}
                  />
-                 <button 
-                    type="button" 
-                    onClick={handleSuggestTask}
-                    className="p-3 bg-indigo-100 text-indigo-600 rounded-xl border border-indigo-200 hover:bg-indigo-200"
-                    title="AI Gợi ý"
-                 >
-                   <Wand2 className="w-5 h-5" />
-                 </button>
+                 {!editingTaskId && (
+                    <button 
+                        type="button" 
+                        onClick={handleSuggestTask}
+                        className="p-3 bg-indigo-100 text-indigo-600 rounded-xl border border-indigo-200 hover:bg-indigo-200"
+                        title="AI Gợi ý"
+                    >
+                    <Wand2 className="w-5 h-5" />
+                    </button>
+                 )}
               </div>
               
               <div className="flex gap-2">
                 <input 
                   type="number" 
                   placeholder="Điểm" 
-                  className="w-20 p-3 rounded-xl border border-blue-200 outline-none text-center"
+                  className={`w-20 p-3 rounded-xl border outline-none text-center ${editingTaskId ? 'border-orange-200' : 'border-blue-200'}`}
                   value={newTaskPoints}
                   onChange={(e) => setNewTaskPoints(Number(e.target.value))}
                 />
@@ -369,8 +418,13 @@ const ParentDashboard = ({
                    <span className="text-sm text-slate-600">Hàng ngày</span>
                 </div>
               </div>
-              <button type="submit" className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 flex items-center justify-center gap-2">
-                <Plus className="w-5 h-5" /> Thêm nhiệm vụ
+              
+              <button 
+                type="submit" 
+                className={`w-full py-3 text-white rounded-xl font-bold flex items-center justify-center gap-2 ${editingTaskId ? 'bg-orange-500 hover:bg-orange-600' : 'bg-blue-600 hover:bg-blue-700'}`}
+              >
+                {editingTaskId ? <Save className="w-5 h-5" /> : <Plus className="w-5 h-5" />} 
+                {editingTaskId ? 'Lưu thay đổi' : 'Thêm nhiệm vụ'}
               </button>
             </form>
 
@@ -381,7 +435,8 @@ const ParentDashboard = ({
                   key={t.id} 
                   task={t} 
                   onComplete={() => {}} 
-                  onDelete={onDeleteTask} 
+                  onDelete={onDeleteTask}
+                  onEdit={handleStartEditTask}
                   isParentMode={true} 
                 />
               ))}
@@ -579,3 +634,4 @@ const ParentDashboard = ({
 };
 
 export default ParentDashboard;
+
