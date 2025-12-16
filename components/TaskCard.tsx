@@ -1,14 +1,15 @@
 
 import React from 'react';
-import { Star, CheckCircle2, Trash2 } from 'lucide-react';
+import { Star, CheckCircle2, Trash2, Pencil } from 'lucide-react';
 import { Task } from '../types';
 
 const TaskCard: React.FC<{ 
   task: Task; 
   onComplete: (id: string, points: number) => void;
   onDelete?: (id: string) => void;
+  onEdit?: (task: Task) => void;
   isParentMode?: boolean;
-}> = ({ task, onComplete, onDelete, isParentMode }) => {
+}> = ({ task, onComplete, onDelete, onEdit, isParentMode }) => {
   const isDone = task.status === 'done';
 
   const handleClick = () => {
@@ -55,13 +56,25 @@ const TaskCard: React.FC<{
            </div>
         )}
 
-        {isParentMode && onDelete && (
-          <button 
-            onClick={(e) => { e.stopPropagation(); onDelete(task.id); }}
-            className="p-2 bg-red-100 text-red-500 rounded-full hover:bg-red-200 z-10"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+        {isParentMode && (
+          <div className="flex gap-2">
+            {onEdit && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); onEdit(task); }}
+                className="p-2 bg-blue-100 text-blue-500 rounded-full hover:bg-blue-200 z-10"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            )}
+            {onDelete && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); onDelete(task.id); }}
+                className="p-2 bg-red-100 text-red-500 rounded-full hover:bg-red-200 z-10"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         )}
       </div>
       
