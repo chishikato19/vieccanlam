@@ -114,25 +114,26 @@ const ParentDashboard = ({
   };
 
   const handleSaveToCloud = async () => {
-    if (!scriptUrl) {
+    const cleanUrl = scriptUrl.trim();
+    if (!cleanUrl) {
       alert("Vui lòng nhập URL Google Script!");
       return;
     }
     
     // Lưu URL trước
-    onUpdateUser({ ...user, googleScriptUrl: scriptUrl });
+    onUpdateUser({ ...user, googleScriptUrl: cleanUrl });
     
     setIsSyncing(true);
     try {
       // Chuẩn bị dữ liệu tổng
       const backupData = {
-        user: { ...user, googleScriptUrl: scriptUrl },
+        user: { ...user, googleScriptUrl: cleanUrl },
         tasks,
         rewards,
         speciesLibrary
       };
       
-      await saveToCloud(scriptUrl, backupData);
+      await saveToCloud(cleanUrl, backupData);
       alert("Đã gửi yêu cầu lưu dữ liệu lên đám mây thành công!");
     } catch (e) {
       alert("Lỗi khi lưu: " + e);
@@ -142,23 +143,24 @@ const ParentDashboard = ({
   };
 
   const handleLoadFromCloud = async () => {
-    if (!scriptUrl) {
+    const cleanUrl = scriptUrl.trim();
+    if (!cleanUrl) {
       alert("Vui lòng nhập URL Google Script!");
       return;
     }
     
-    onUpdateUser({ ...user, googleScriptUrl: scriptUrl });
+    onUpdateUser({ ...user, googleScriptUrl: cleanUrl });
 
     setIsSyncing(true);
     try {
-      const data = await loadFromCloud(scriptUrl);
-      if (data) {
+      const data = await loadFromCloud(cleanUrl);
+      if (data && Object.keys(data).length > 0) {
         if (confirm("Tìm thấy dữ liệu cũ trên mây. Bạn có chắc muốn tải về và ghi đè dữ liệu hiện tại không?")) {
            onSyncData(data);
            alert("Đã tải dữ liệu thành công!");
         }
       } else {
-        alert("Chưa có dữ liệu nào trên đám mây.");
+        alert("Kết nối thành công nhưng chưa có dữ liệu nào trên đám mây.");
       }
     } catch (e) {
       alert("Lỗi khi tải: " + e);
