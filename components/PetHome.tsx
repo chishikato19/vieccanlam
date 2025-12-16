@@ -1,22 +1,26 @@
 
 import React, { useState, useEffect } from 'react';
-import { Zap, Utensils, X, Coins, Heart, Plus } from 'lucide-react';
-import { UserData, PetSpecies, FoodItem } from '../types';
-import { FOOD_ITEMS, FRAMES, INITIAL_REWARDS } from '../data';
+import { Zap, Utensils, X, Coins, Heart, Plus, Trash2 } from 'lucide-react';
+import { UserData, PetSpecies, FoodItem, Reward } from '../types';
+import { FOOD_ITEMS, FRAMES } from '../data';
 
 const PetHome = ({ 
   user, 
   speciesLibrary,
+  rewards, // Nhận thêm rewards từ props
   onFeed,
   onEquip,
+  onRemoveItem, // Nhận hàm xóa item
   onAddXp,
   onSwitchPet,
   onAdopt
 }: { 
   user: UserData,
   speciesLibrary: Record<string, PetSpecies>,
+  rewards: Reward[],
   onFeed: (food: FoodItem) => void,
   onEquip: (type: 'avatar' | 'frame', value: string) => void,
+  onRemoveItem: (id: string) => void,
   onAddXp: () => void,
   onSwitchPet: (id: string) => void,
   onAdopt: (speciesId: string) => void
@@ -271,39 +275,71 @@ const PetHome = ({
                 <div>
                    <p className="text-sm font-bold text-slate-500 uppercase mb-3">Avatar</p>
                    <div className="flex gap-4 flex-wrap">
-                      {['🐯', '🐻', '🐰', ...user.inventory.filter(id => id.startsWith('av')).map(id => {
-                         const r = INITIAL_REWARDS.find(x => x.id === id);
-                         return r ? r.image : '?';
-                      })].map((av, idx) => (
-                         <button 
-                           key={idx}
-                           onClick={() => onEquip('avatar', av)}
-                           className={`w-16 h-16 rounded-2xl text-3xl flex items-center justify-center border-2 transition-all
-                             ${user.activeAvatar === av ? 'bg-blue-100 border-blue-500 shadow-md ring-2 ring-blue-200' : 'bg-slate-50 border-slate-200'}`}
-                         >
-                            {av}
-                         </button>
-                      ))}
+                      {/* FIX: Sử dụng danh sách rewards được truyền vào để tìm icon */}
+                      {['🐯', '🐻', '🐰', ...user.inventory.filter(id => id.startsWith('av'))].map((idOrIcon, idx) => {
+                         // Kiểm tra xem là default icon hay là reward ID
+                         const isDefault = ['🐯', '🐻', '🐰'].includes(idOrIcon);
+                         const reward = isDefault ? null : rewards.find(r => r.id === idOrIcon);
+                         const displayIcon = isDefault ? idOrIcon : (reward ? reward.image : '?');
+                         const itemId = isDefault ? idOrIcon : (reward ? reward.id : idOrIcon);
+
+                         return (
+                            <div key={idx} className="relative group">
+                              <button 
+                                onClick={() => onEquip('avatar', displayIcon)}
+                                className={`w-16 h-16 rounded-2xl text-3xl flex items-center justify-center border-2 transition-all
+                                  ${user.activeAvatar === displayIcon ? 'bg-blue-100 border-blue-500 shadow-md ring-2 ring-blue-200' : 'bg-slate-50 border-slate-200'}`}
+                              >
+                                  {displayIcon}
+                              </button>
+                              {user.isTestingMode && !isDefault && (
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); onRemoveItem(itemId); }}
+                                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-sm hover:bg-red-600"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                         );
+                      })}
                    </div>
                 </div>
 
                 <div>
                    <p className="text-sm font-bold text-slate-500 uppercase mb-3">Khung hình</p>
                    <div className="flex gap-4 flex-wrap">
-                      {['default', ...user.inventory.filter(id => id.startsWith('fr')).map(id => {
-                         if(id.includes('fr1')) return 'gold';
-                         if(id.includes('fr2')) return 'rainbow';
-                         return 'default';
-                      })].map((styleKey, idx) => (
-                         <button 
-                           key={idx}
-                           onClick={() => onEquip('frame', styleKey)}
-                           className={`w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center border-2 transition-all relative
-                             ${user.activeFrame === styleKey ? 'border-purple-500 shadow-md' : 'border-slate-200'}`}
-                         >
-                            <div className={`w-10 h-10 rounded-full border-2 bg-white ${FRAMES[styleKey]}`}></div>
-                         </button>
-                      ))}
+                      {/* Logic hiển thị khung hình: Check ID trong FRAMES */}
+                      {['default', ...user.inventory.filter(id => FRAMES[id] || id.startsWith('fr') || id === 'gold' || id === 'rainbow')].map((styleKey, idx) => {
+                         // Fallback logic cho các phiên bản cũ hoặc ID đặc biệt
+                         let cssClass = FRAMES[styleKey];
+                         // Backward compatibility logic nếu cần (ví dụ id cũ là fr1, fr2 nhưng data.ts đã đổi)
+                         if (!cssClass) {
+                            if (styleKey.includes('fr1')) cssClass = FRAMES['gold'];
+                            else if (styleKey.includes('fr2')) cssClass = FRAMES['rainbow'];
+                            else cssClass = FRAMES['default'];
+                         }
+                         
+                         return (
+                            <div key={idx} className="relative group">
+                              <button 
+                                onClick={() => onEquip('frame', styleKey)}
+                                className={`w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center border-2 transition-all relative
+                                  ${user.activeFrame === styleKey ? 'border-purple-500 shadow-md' : 'border-slate-200'}`}
+                              >
+                                  <div className={`w-10 h-10 rounded-full border-2 bg-white ${cssClass}`}></div>
+                              </button>
+                              {user.isTestingMode && styleKey !== 'default' && (
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); onRemoveItem(styleKey); }}
+                                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-sm hover:bg-red-600"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                         );
+                      })}
                    </div>
                 </div>
             </div>
@@ -314,3 +350,4 @@ const PetHome = ({
 };
 
 export default PetHome;
+
