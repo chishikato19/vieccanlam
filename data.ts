@@ -6,7 +6,18 @@ export const FRAMES: Record<string, string> = {
   'gold': 'border-yellow-400 ring-4 ring-yellow-200',
   'fire': 'border-red-500 ring-4 ring-orange-300',
   'leaf': 'border-green-500 ring-4 ring-green-200',
-  'rainbow': 'border-transparent bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 p-[2px]'
+  'rainbow': 'border-transparent bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 p-[2px]',
+  // 10 Khung hình mới
+  'neon': 'border-cyan-400 ring-4 ring-cyan-200 shadow-[0_0_10px_#22d3ee]',
+  'galaxy': 'border-indigo-600 ring-4 ring-purple-400 bg-slate-900',
+  'ocean': 'border-blue-600 ring-4 ring-blue-300 bg-blue-50',
+  'love': 'border-pink-500 ring-4 ring-pink-200',
+  'dark': 'border-slate-800 ring-4 ring-slate-500 bg-slate-200',
+  'candy': 'border-pink-400 ring-4 ring-yellow-300 border-dashed',
+  'nature': 'border-emerald-600 ring-4 ring-emerald-200 border-double',
+  'royal': 'border-purple-700 ring-4 ring-yellow-500',
+  'ice': 'border-sky-300 ring-4 ring-white bg-sky-50',
+  'robot': 'border-slate-400 ring-4 ring-slate-200 border-dotted',
 };
 
 export const COMMON_ICONS = [
@@ -30,8 +41,20 @@ export const INITIAL_REWARDS: Reward[] = [
   { id: 'r2', title: 'Một que kem', cost: 150, image: '🍦', type: 'toy' },
   { id: 'av1', title: 'Avatar: Rồng Lửa', cost: 300, image: '🐲', type: 'avatar' },
   { id: 'av2', title: 'Avatar: Công Chúa', cost: 300, image: '👸', type: 'avatar' },
-  { id: 'fr1', title: 'Khung: Vàng Ròng', cost: 500, image: '👑', type: 'frame' },
-  { id: 'fr2', title: 'Khung: Cầu Vồng', cost: 600, image: '🌈', type: 'frame' },
+  // Khung hình cũ
+  { id: 'gold', title: 'Khung: Vàng Ròng', cost: 500, image: '👑', type: 'frame' },
+  { id: 'rainbow', title: 'Khung: Cầu Vồng', cost: 600, image: '🌈', type: 'frame' },
+  // Khung hình mới
+  { id: 'neon', title: 'Khung: Neon', cost: 400, image: '💡', type: 'frame' },
+  { id: 'galaxy', title: 'Khung: Vũ Trụ', cost: 450, image: '🪐', type: 'frame' },
+  { id: 'ocean', title: 'Khung: Đại Dương', cost: 350, image: '🌊', type: 'frame' },
+  { id: 'love', title: 'Khung: Trái Tim', cost: 300, image: '💖', type: 'frame' },
+  { id: 'dark', title: 'Khung: Bóng Đêm', cost: 400, image: '🦇', type: 'frame' },
+  { id: 'candy', title: 'Khung: Kẹo Ngọt', cost: 250, image: '🍬', type: 'frame' },
+  { id: 'nature', title: 'Khung: Thiên Nhiên', cost: 300, image: '🌿', type: 'frame' },
+  { id: 'royal', title: 'Khung: Hoàng Gia', cost: 800, image: '🏰', type: 'frame' },
+  { id: 'ice', title: 'Khung: Băng Giá', cost: 350, image: '❄️', type: 'frame' },
+  { id: 'robot', title: 'Khung: Robot', cost: 400, image: '🤖', type: 'frame' },
 ];
 
 export const INITIAL_PET_SPECIES: Record<string, PetSpecies> = {
