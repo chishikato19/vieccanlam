@@ -62,4 +62,6 @@ export interface UserData {
   pets: PetState[]; // Thay đổi từ pet đơn sang mảng pets
   activePetId: string; // ID của thú cưng đang chọn
   pin: string; // Mật khẩu phụ huynh
+  isTestingMode?: boolean; // Chế độ kiểm thử (hiện nút hack)
+  googleScriptUrl?: string; // URL của Google Apps Script
 }

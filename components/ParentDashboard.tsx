@@ -1,12 +1,13 @@
 
 import React, { useState } from 'react';
-import { Settings, X, Wand2, Plus, CheckCircle2, Eye, RefreshCcw, Save, KeyRound } from 'lucide-react';
+import { Settings, X, Wand2, Plus, CheckCircle2, Eye, RefreshCcw, Save, KeyRound, User, ToggleLeft, ToggleRight, Cloud, Download, Upload } from 'lucide-react';
 import TaskCard from './TaskCard';
 import RewardCard from './RewardCard';
 import IconPicker from './IconPicker';
-import { Task, Reward, PetSpecies, RewardType, PetState } from '../types';
+import { Task, Reward, PetSpecies, RewardType, PetState, UserData } from '../types';
 import { COMMON_ICONS, COMMON_REWARD_ICONS, AI_SUGGESTIONS } from '../data';
 import { generateId, calculateMaxXp } from '../utils';
+import { saveToCloud, loadFromCloud } from '../cloud';
 
 const ParentDashboard = ({ 
   user,
@@ -20,10 +21,19 @@ const ParentDashboard = ({
   onUpdatePet,
   onAddSpecies,
   onUpdatePin,
+  onUpdateUser,
+  onSyncData, // Callback khi tải dữ liệu từ cloud về
   onClose 
 }: any) => {
-  const [activeTab, setActiveTab] = useState<'tasks' | 'rewards' | 'pet' | 'security'>('tasks');
+  const [activeTab, setActiveTab] = useState<'general' | 'tasks' | 'rewards' | 'pet' | 'cloud'>('general');
   const activePet = user.pets.find((p: any) => p.id === user.activePetId) || user.pets[0];
+
+  // General Settings State
+  const [editName, setEditName] = useState(user.name);
+
+  // Cloud State
+  const [scriptUrl, setScriptUrl] = useState(user.googleScriptUrl || '');
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Task Form State
   const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -91,7 +101,7 @@ const ParentDashboard = ({
       isCustom: true,
       cost: 500, // Default cost for custom
       stages: [
-        { minLevel: 1, image: newSpeciesImages[0], name: 'Bé con', dialogue: ['Chào mừng!', 'Thế giới rộng lớn quá!'] },
+        { minLevel: 1, image: newSpeciesImages[0], name: 'Trứng Bí Ẩn', dialogue: ['Chào mừng!', 'Thế giới rộng lớn quá!'] },
         { minLevel: 5, image: newSpeciesImages[1], name: 'Tập đi', dialogue: ['Chơi với tớ đi!', 'Đói quá!'] },
         { minLevel: 15, image: newSpeciesImages[2], name: 'Trưởng thành', dialogue: ['Sức mạnh!', 'Bảo vệ bạn!'] },
         { minLevel: 30, image: newSpeciesImages[3], name: 'Huyền thoại', dialogue: ['Ta là vô địch!', 'Cảm ơn đã nuôi nấng!'] }
@@ -101,6 +111,60 @@ const ParentDashboard = ({
     setIsCreatingSpecies(false);
     setNewSpeciesName('');
     alert('Đã thêm loài vật mới thành công!');
+  };
+
+  const handleSaveToCloud = async () => {
+    if (!scriptUrl) {
+      alert("Vui lòng nhập URL Google Script!");
+      return;
+    }
+    
+    // Lưu URL trước
+    onUpdateUser({ ...user, googleScriptUrl: scriptUrl });
+    
+    setIsSyncing(true);
+    try {
+      // Chuẩn bị dữ liệu tổng
+      const backupData = {
+        user: { ...user, googleScriptUrl: scriptUrl },
+        tasks,
+        rewards,
+        speciesLibrary
+      };
+      
+      await saveToCloud(scriptUrl, backupData);
+      alert("Đã gửi yêu cầu lưu dữ liệu lên đám mây thành công!");
+    } catch (e) {
+      alert("Lỗi khi lưu: " + e);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleLoadFromCloud = async () => {
+    if (!scriptUrl) {
+      alert("Vui lòng nhập URL Google Script!");
+      return;
+    }
+    
+    onUpdateUser({ ...user, googleScriptUrl: scriptUrl });
+
+    setIsSyncing(true);
+    try {
+      const data = await loadFromCloud(scriptUrl);
+      if (data) {
+        if (confirm("Tìm thấy dữ liệu cũ trên mây. Bạn có chắc muốn tải về và ghi đè dữ liệu hiện tại không?")) {
+           onSyncData(data);
+           alert("Đã tải dữ liệu thành công!");
+        }
+      } else {
+        alert("Chưa có dữ liệu nào trên đám mây.");
+      }
+    } catch (e) {
+      alert("Lỗi khi tải: " + e);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   return (
@@ -116,22 +180,150 @@ const ParentDashboard = ({
       </div>
 
       <div className="p-4 max-w-md mx-auto">
-        <div className="flex gap-1 mb-6 p-1 bg-slate-100 rounded-xl overflow-x-auto">
-          {['tasks', 'rewards', 'pet', 'security'].map(tab => (
+        <div className="flex gap-1 mb-6 p-1 bg-slate-100 rounded-xl overflow-x-auto hide-scrollbar">
+          {['general', 'tasks', 'rewards', 'pet', 'cloud'].map(tab => (
              <button 
               key={tab}
               onClick={() => setActiveTab(tab as any)}
-              className={`flex-1 min-w-[80px] py-2 rounded-lg text-xs font-bold transition-all uppercase ${activeTab === tab ? 'bg-white shadow text-slate-800' : 'text-slate-500'}`}
+              className={`flex-1 min-w-[80px] py-2 rounded-lg text-xs font-bold transition-all uppercase whitespace-nowrap px-2 ${activeTab === tab ? 'bg-white shadow text-slate-800' : 'text-slate-500'}`}
             >
               {{
+                general: 'Cài đặt',
                 tasks: 'Nhiệm vụ',
-                rewards: 'Quà tặng',
+                rewards: 'Quà',
                 pet: 'Thú cưng',
-                security: 'Bảo mật'
+                cloud: 'Đám mây'
               }[tab]}
             </button>
           ))}
         </div>
+
+        {activeTab === 'general' && (
+          <div className="space-y-6 animate-fade-in">
+            {/* NAME SETTINGS */}
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+               <h3 className="font-bold text-slate-700 mb-3 flex items-center gap-2"><User className="w-5 h-5"/> Thông tin bé</h3>
+               <div className="flex gap-2">
+                 <input 
+                   type="text" 
+                   value={editName}
+                   onChange={(e) => setEditName(e.target.value)}
+                   className="flex-1 p-3 rounded-xl border border-slate-200"
+                   placeholder="Nhập tên bé..."
+                 />
+                 <button 
+                    onClick={() => {
+                       onUpdateUser({ ...user, name: editName });
+                       alert('Đã lưu tên bé!');
+                    }}
+                    className="bg-blue-600 text-white px-4 rounded-xl font-bold"
+                 >Lưu</button>
+               </div>
+            </div>
+
+            {/* TESTING MODE */}
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+               <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="font-bold text-slate-700 flex items-center gap-2"><Wand2 className="w-5 h-5"/> Chế độ kiểm thử</h3>
+                    <p className="text-xs text-slate-500 mt-1">Hiện các nút hack Xu và XP để test app.</p>
+                  </div>
+                  <button 
+                    onClick={() => onUpdateUser({ ...user, isTestingMode: !user.isTestingMode })}
+                    className={`text-3xl transition-colors ${user.isTestingMode ? 'text-green-500' : 'text-slate-300'}`}
+                  >
+                     {user.isTestingMode ? <ToggleRight className="w-10 h-10 fill-current" /> : <ToggleLeft className="w-10 h-10" />}
+                  </button>
+               </div>
+            </div>
+
+            {/* PIN SETTINGS */}
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-4">
+              <h3 className="font-bold text-slate-700 flex items-center gap-2">
+                 <KeyRound className="w-5 h-5" /> Đổi mật khẩu
+              </h3>
+              <p className="text-sm text-slate-500">Mã PIN dùng để vào khu vực này (Mặc định: 0000).</p>
+              
+              <div className="flex gap-2">
+                 <input 
+                    type="text" 
+                    maxLength={4}
+                    placeholder="PIN mới (4 số)"
+                    className="flex-1 p-3 rounded-xl border border-slate-200 text-center tracking-widest font-bold"
+                    value={newPin}
+                    onChange={(e) => setNewPin(e.target.value.replace(/[^0-9]/g, ''))}
+                 />
+                 <button 
+                   onClick={() => {
+                      if (newPin.length === 4) {
+                         onUpdatePin(newPin);
+                         setNewPin('');
+                         alert('Đổi PIN thành công!');
+                      } else {
+                         alert('Vui lòng nhập đủ 4 số.');
+                      }
+                   }}
+                   className="bg-slate-800 text-white px-4 rounded-xl font-bold"
+                 >
+                    Lưu
+                 </button>
+              </div>
+           </div>
+          </div>
+        )}
+
+        {activeTab === 'cloud' && (
+          <div className="space-y-6 animate-fade-in">
+             <div className="bg-blue-50 p-4 rounded-2xl border border-blue-200">
+               <h3 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
+                 <Cloud className="w-5 h-5" /> Đồng bộ dữ liệu
+               </h3>
+               <p className="text-sm text-blue-700 mb-4">
+                 Lưu trữ quá trình chơi lên Google Sheets để không bị mất khi đổi máy.
+               </p>
+
+               <div className="mb-4">
+                 <label className="text-xs font-bold text-blue-600 block mb-1">URL Google Apps Script</label>
+                 <input 
+                   type="text"
+                   className="w-full p-2 text-xs border border-blue-200 rounded-lg mb-1"
+                   placeholder="https://script.google.com/macros/s/..."
+                   value={scriptUrl}
+                   onChange={(e) => setScriptUrl(e.target.value)}
+                 />
+                 <p className="text-[10px] text-blue-400">Dán link ứng dụng web bạn đã triển khai từ Google Apps Script.</p>
+               </div>
+
+               <div className="grid grid-cols-2 gap-3">
+                  <button 
+                    onClick={handleSaveToCloud}
+                    disabled={isSyncing}
+                    className="flex flex-col items-center justify-center p-4 bg-white border-2 border-blue-200 rounded-xl hover:bg-blue-100 transition-colors disabled:opacity-50"
+                  >
+                    <Upload className="w-6 h-6 text-blue-500 mb-2" />
+                    <span className="text-xs font-bold text-blue-700">Lưu lên Mây</span>
+                  </button>
+
+                  <button 
+                    onClick={handleLoadFromCloud}
+                    disabled={isSyncing}
+                    className="flex flex-col items-center justify-center p-4 bg-white border-2 border-green-200 rounded-xl hover:bg-green-50 transition-colors disabled:opacity-50"
+                  >
+                    <Download className="w-6 h-6 text-green-500 mb-2" />
+                    <span className="text-xs font-bold text-green-700">Tải về Máy</span>
+                  </button>
+               </div>
+               
+               {isSyncing && <p className="text-center text-xs font-bold text-blue-500 mt-2 animate-pulse">Đang đồng bộ...</p>}
+             </div>
+             
+             <div className="bg-orange-50 p-4 rounded-2xl border border-orange-200">
+                <p className="text-xs text-orange-800">
+                   <strong>Lưu ý:</strong> Dữ liệu trên mây sẽ ghi đè dữ liệu trên máy khi bạn bấm "Tải về". Hãy chắc chắn rằng bạn đã lưu dữ liệu mới nhất trước khi chuyển thiết bị.
+                </p>
+             </div>
+          </div>
+        )}
 
         {activeTab === 'tasks' && (
           <div className="space-y-6">
@@ -282,6 +474,7 @@ const ParentDashboard = ({
                                   {species.stages.map((stage: any) => (
                                     <div key={stage.minLevel} className="text-center">
                                         <span className="text-xl">{stage.image}</span>
+                                        <span className="text-[9px] text-slate-400 block">Lv{stage.minLevel}</span>
                                     </div>
                                   ))}
                               </div>
@@ -377,41 +570,6 @@ const ParentDashboard = ({
               </div>
             )}
           </div>
-        )}
-
-        {activeTab === 'security' && (
-           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-4">
-              <h3 className="font-bold text-slate-700 flex items-center gap-2">
-                 <KeyRound className="w-5 h-5" /> Đổi mật khẩu
-              </h3>
-              <p className="text-sm text-slate-500">Mã PIN hiện tại dùng để truy cập vào khu vực này.</p>
-              
-              <div className="flex gap-2">
-                 <input 
-                    type="text" 
-                    maxLength={4}
-                    placeholder="Nhập PIN mới (4 số)"
-                    className="flex-1 p-3 rounded-xl border border-slate-200 text-center tracking-widest font-bold"
-                    value={newPin}
-                    onChange={(e) => setNewPin(e.target.value.replace(/[^0-9]/g, ''))}
-                 />
-                 <button 
-                   onClick={() => {
-                      if (newPin.length === 4) {
-                         onUpdatePin(newPin);
-                         setNewPin('');
-                         alert('Đổi PIN thành công!');
-                      } else {
-                         alert('Vui lòng nhập đủ 4 số.');
-                      }
-                   }}
-                   className="bg-slate-800 text-white px-4 rounded-xl font-bold"
-                 >
-                    Lưu
-                 </button>
-              </div>
-              <p className="text-xs text-slate-400 text-center mt-2">Mã mặc định ban đầu là: 0000</p>
-           </div>
         )}
       </div>
     </div>

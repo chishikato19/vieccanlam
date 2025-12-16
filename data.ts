@@ -40,7 +40,7 @@ export const INITIAL_PET_SPECIES: Record<string, PetSpecies> = {
     name: 'Rồng Lửa',
     cost: 0,
     stages: [
-      { minLevel: 1, image: '🥚', name: 'Trứng Rồng', dialogue: ['...', 'Lắc lắc...', 'Zzz...', 'Sắp nở rồi...'] },
+      { minLevel: 1, image: '🥚', name: 'Trứng Bí Ẩn', dialogue: ['...', 'Lắc lắc...', 'Zzz...', 'Sắp nở rồi...'] },
       { minLevel: 5, image: '🦖', name: 'Khủng Long Con', dialogue: ['Gào!', 'Đói quá!', 'Chơi với em đi!', 'Mẹ ơi!'] },
       { minLevel: 15, image: '🐲', name: 'Rồng Chiến', dialogue: ['Ta là Rồng!', 'Bay lên nào!', 'Phùuuu lửa!', 'Bảo vệ chủ nhân!'] },
       { minLevel: 30, image: '🔥', name: 'Rồng Thần', dialogue: ['Sức mạnh tối thượng!', 'Cảm ơn chủ nhân!', 'Bất khả chiến bại!'] }
@@ -51,7 +51,7 @@ export const INITIAL_PET_SPECIES: Record<string, PetSpecies> = {
     name: 'Kỳ Lân',
     cost: 500,
     stages: [
-      { minLevel: 1, image: '🥚', name: 'Trứng Kỳ Lân', dialogue: ['Lấp lánh...', 'Ấm áp quá...', 'Zzz...', 'Nhiều màu sắc...'] },
+      { minLevel: 1, image: '🥚', name: 'Trứng Bí Ẩn', dialogue: ['Lấp lánh...', 'Ấm áp quá...', 'Zzz...', 'Nhiều màu sắc...'] },
       { minLevel: 5, image: '🦄', name: 'Ngựa Pony', dialogue: ['Hí hí!', 'Kẹo ngọt đâu?', 'Chạy thi không?', 'Yêu bé lắm!'] },
       { minLevel: 15, image: '🌈', name: 'Kỳ Lân Bay', dialogue: ['Cầu vồng rực rỡ!', 'Bay lên trời cao!', 'Phép thuật!', 'Lung linh quá!'] },
       { minLevel: 30, image: '✨', name: 'Thần Mã', dialogue: ['Ánh sáng vĩnh cửu!', 'Bảo vệ giấc mơ!', 'Tình bạn diệu kỳ!'] }
@@ -62,7 +62,7 @@ export const INITIAL_PET_SPECIES: Record<string, PetSpecies> = {
     name: 'Mèo Thần Tài',
     cost: 200,
     stages: [
-      { minLevel: 1, image: '📦', name: 'Mèo Trong Hộp', dialogue: ['Meow...', 'Ai đó?', 'Tối quá...'] },
+      { minLevel: 1, image: '📦', name: 'Trứng Bí Ẩn', dialogue: ['Meow...', 'Ai đó?', 'Tối quá...'] },
       { minLevel: 5, image: '🐱', name: 'Mèo Con', dialogue: ['Meow meow!', 'Cá đâu?', 'Gãi bụng tớ đi!'] },
       { minLevel: 15, image: '😼', name: 'Mèo Siêu Nhân', dialogue: ['Ta sẽ bắt chuột!', 'Nhanh như chớp!', 'Leo cây thôi!'] },
       { minLevel: 30, image: '🦁', name: 'Sư Tử Nhí', dialogue: ['Ta là chúa sơn lâm!', 'Gooooaooo!', 'Dũng cảm lên!'] }
