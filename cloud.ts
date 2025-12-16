@@ -1,34 +1,42 @@
 
 export const saveToCloud = async (scriptUrl: string, data: any) => {
   try {
-    // SỬA ĐỔI: Sử dụng text/plain thay vì application/json
-    // Điều này giúp trình duyệt không gửi yêu cầu OPTIONS (pre-flight)
-    // Google Apps Script sẽ nhận được chuỗi raw text và parse trong doPost
-    const response = await fetch(scriptUrl, {
+    // SỬA ĐỔI: Sử dụng URLSearchParams (Form Data Standard)
+    // Đây là cách "chuẩn" nhất để gửi dữ liệu lên Google Forms/Sheets thông qua Script
+    // Giúp tránh các lỗi liên quan đến CORS Pre-flight check
+    const formData = new URLSearchParams();
+    formData.append('action', 'save');
+    // Chuyển data thành chuỗi JSON trước khi gửi
+    formData.append('data', JSON.stringify(data));
+
+    // Sử dụng no-cors để trình duyệt cho phép gửi đi mà không chặn
+    // Lưu ý: no-cors nghĩa là ta gửi đi nhưng không đọc được phản hồi "success"
+    // nhưng Google Script vẫn sẽ nhận được và xử lý.
+    await fetch(scriptUrl, {
       method: 'POST',
-      mode: 'no-cors', 
+      mode: 'no-cors',
       headers: {
-        'Content-Type': 'text/plain;charset=utf-8',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: JSON.stringify({
-        action: 'save',
-        data: data
-      })
+      body: formData.toString()
     });
+    
     return true;
   } catch (error) {
     console.error("Cloud Save Error:", error);
-    // Với mode no-cors, chúng ta không bắt được lỗi server trả về,
-    // nhưng catch này sẽ bắt lỗi mạng (mất mạng, sai url domain...)
     throw error;
   }
 };
 
 export const loadFromCloud = async (scriptUrl: string) => {
   try {
-    // Với GET, Google Script sẽ redirect (302), fetch mặc định sẽ follow redirect.
-    // Nếu lỗi Failed to fetch ở đây -> Kiểm tra lại quyền "Anyone" trong Google Script Deploy.
-    const response = await fetch(scriptUrl);
+    // Thêm tham số timestamp để tránh bị trình duyệt cache dữ liệu cũ
+    const urlWithParams = `${scriptUrl}${scriptUrl.includes('?') ? '&' : '?'}action=load&t=${Date.now()}`;
+    
+    const response = await fetch(urlWithParams, {
+        method: 'GET'
+        // Không set header Content-Type ở GET request để tránh pre-flight
+    });
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -38,6 +46,7 @@ export const loadFromCloud = async (scriptUrl: string) => {
     return data;
   } catch (error) {
     console.error("Cloud Load Error:", error);
-    throw error;
+    // Nếu lỗi Failed to fetch xảy ra ở đây, 99% là do chưa set quyền "Anyone" trong Google Script
+    throw new Error("Không thể kết nối. Vui lòng kiểm tra: 1. Quyền 'Bất kỳ ai' (Anyone). 2. URL Script chính xác.");
   }
 };
