@@ -7,7 +7,6 @@ export const FRAMES: Record<string, string> = {
   'fire': 'border-red-500 ring-4 ring-orange-300',
   'leaf': 'border-green-500 ring-4 ring-green-200',
   'rainbow': 'border-transparent bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 p-[2px]',
-  // 10 Khung hình mới
   'neon': 'border-cyan-400 ring-4 ring-cyan-200 shadow-[0_0_10px_#22d3ee]',
   'galaxy': 'border-indigo-600 ring-4 ring-purple-400 bg-slate-900',
   'ocean': 'border-blue-600 ring-4 ring-blue-300 bg-blue-50',
@@ -34,17 +33,19 @@ export const INITIAL_TASKS: Task[] = [
   { id: 't1', title: 'Đánh răng buổi sáng', points: 10, icon: '🪥', status: 'todo', isDaily: true },
   { id: 't2', title: 'Gấp chăn màn', points: 20, icon: '🛏️', status: 'todo', isDaily: true },
   { id: 't3', title: 'Học bài 30 phút', points: 50, icon: '📚', status: 'todo', isDaily: true },
+  { id: 't4', title: 'Tự giác đi ngủ đúng giờ', points: 30, icon: '💤', status: 'todo', isDaily: true },
 ];
 
 export const INITIAL_REWARDS: Reward[] = [
   { id: 'r1', title: 'Xem TV 30 phút', cost: 100, image: '📺', type: 'activity' },
-  { id: 'r2', title: 'Một que kem', cost: 150, image: '🍦', type: 'toy' },
+  { id: 'r2', title: 'Một que kem mát lạnh', cost: 150, image: '🍦', type: 'toy' },
   { id: 'av1', title: 'Avatar: Rồng Lửa', cost: 300, image: '🐲', type: 'avatar' },
   { id: 'av2', title: 'Avatar: Công Chúa', cost: 300, image: '👸', type: 'avatar' },
-  // Khung hình cũ
+  { id: 'av3', title: 'Avatar: Phi Hành Gia', cost: 400, image: '👨‍🚀', type: 'avatar' },
+  { id: 'av4', title: 'Avatar: Gấu Trúc', cost: 250, image: '🐼', type: 'avatar' },
+  { id: 'av5', title: 'Avatar: Robot', cost: 450, image: '🤖', type: 'avatar' },
   { id: 'gold', title: 'Khung: Vàng Ròng', cost: 500, image: '👑', type: 'frame' },
   { id: 'rainbow', title: 'Khung: Cầu Vồng', cost: 600, image: '🌈', type: 'frame' },
-  // Khung hình mới
   { id: 'neon', title: 'Khung: Neon', cost: 400, image: '💡', type: 'frame' },
   { id: 'galaxy', title: 'Khung: Vũ Trụ', cost: 450, image: '🪐', type: 'frame' },
   { id: 'ocean', title: 'Khung: Đại Dương', cost: 350, image: '🌊', type: 'frame' },
@@ -63,10 +64,10 @@ export const INITIAL_PET_SPECIES: Record<string, PetSpecies> = {
     name: 'Rồng Lửa',
     cost: 0,
     stages: [
-      { minLevel: 1, image: '🥚', name: 'Trứng Bí Ẩn', dialogue: ['...', 'Lắc lắc...', 'Zzz...', 'Sắp nở rồi...'] },
-      { minLevel: 5, image: '🦖', name: 'Khủng Long Con', dialogue: ['Gào!', 'Đói quá!', 'Chơi với em đi!', 'Mẹ ơi!'] },
-      { minLevel: 15, image: '🐲', name: 'Rồng Chiến', dialogue: ['Ta là Rồng!', 'Bay lên nào!', 'Phùuuu lửa!', 'Bảo vệ chủ nhân!'] },
-      { minLevel: 30, image: '🔥', name: 'Rồng Thần', dialogue: ['Sức mạnh tối thượng!', 'Cảm ơn chủ nhân!', 'Bất khả chiến bại!'] }
+      { minLevel: 1, image: '🥚', name: 'Trứng Bí Ẩn', dialogue: ['...', 'Lắc lắc...', 'Zzz...'] },
+      { minLevel: 5, image: '🦖', name: 'Khủng Long Con', dialogue: ['Gào!', 'Đói quá!', 'Chơi với em đi!'] },
+      { minLevel: 15, image: '🐲', name: 'Rồng Chiến', dialogue: ['Ta là Rồng!', 'Bay lên nào!', 'Phùuuu lửa!'] },
+      { minLevel: 30, image: '🔥', name: 'Rồng Thần', dialogue: ['Sức mạnh tối thượng!', 'Bất khả chiến bại!'] }
     ]
   },
   unicorn: {
@@ -74,10 +75,10 @@ export const INITIAL_PET_SPECIES: Record<string, PetSpecies> = {
     name: 'Kỳ Lân',
     cost: 500,
     stages: [
-      { minLevel: 1, image: '🥚', name: 'Trứng Bí Ẩn', dialogue: ['Lấp lánh...', 'Ấm áp quá...', 'Zzz...', 'Nhiều màu sắc...'] },
-      { minLevel: 5, image: '🦄', name: 'Ngựa Pony', dialogue: ['Hí hí!', 'Kẹo ngọt đâu?', 'Chạy thi không?', 'Yêu bé lắm!'] },
-      { minLevel: 15, image: '🌈', name: 'Kỳ Lân Bay', dialogue: ['Cầu vồng rực rỡ!', 'Bay lên trời cao!', 'Phép thuật!', 'Lung linh quá!'] },
-      { minLevel: 30, image: '✨', name: 'Thần Mã', dialogue: ['Ánh sáng vĩnh cửu!', 'Bảo vệ giấc mơ!', 'Tình bạn diệu kỳ!'] }
+      { minLevel: 1, image: '🥚', name: 'Trứng Bí Ẩn', dialogue: ['Lấp lánh...', 'Ấm áp quá...'] },
+      { minLevel: 5, image: '🦄', name: 'Ngựa Pony', dialogue: ['Hí hí!', 'Kẹo ngọt đâu?', 'Yêu bé lắm!'] },
+      { minLevel: 15, image: '🌈', name: 'Kỳ Lân Bay', dialogue: ['Cầu vồng rực rỡ!', 'Phép thuật!'] },
+      { minLevel: 30, image: '✨', name: 'Thần Mã', dialogue: ['Ánh sáng vĩnh cửu!', 'Bảo vệ giấc mơ!'] }
     ]
   },
   cat: {
@@ -85,10 +86,10 @@ export const INITIAL_PET_SPECIES: Record<string, PetSpecies> = {
     name: 'Mèo Thần Tài',
     cost: 200,
     stages: [
-      { minLevel: 1, image: '📦', name: 'Trứng Bí Ẩn', dialogue: ['Meow...', 'Ai đó?', 'Tối quá...'] },
+      { minLevel: 1, image: '📦', name: 'Hộp Bí Ẩn', dialogue: ['Meow...', 'Ai đó?'] },
       { minLevel: 5, image: '🐱', name: 'Mèo Con', dialogue: ['Meow meow!', 'Cá đâu?', 'Gãi bụng tớ đi!'] },
-      { minLevel: 15, image: '😼', name: 'Mèo Siêu Nhân', dialogue: ['Ta sẽ bắt chuột!', 'Nhanh như chớp!', 'Leo cây thôi!'] },
-      { minLevel: 30, image: '🦁', name: 'Sư Tử Nhí', dialogue: ['Ta là chúa sơn lâm!', 'Gooooaooo!', 'Dũng cảm lên!'] }
+      { minLevel: 15, image: '😼', name: 'Mèo Siêu Nhân', dialogue: ['Ta sẽ bắt chuột!', 'Nhanh như chớp!'] },
+      { minLevel: 30, image: '🦁', name: 'Sư Tử Nhí', dialogue: ['Gooooaooo!', 'Dũng cảm lên!'] }
     ]
   }
 };
