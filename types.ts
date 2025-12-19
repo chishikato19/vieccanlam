@@ -1,5 +1,5 @@
 
-export type RewardType = 'toy' | 'activity' | 'avatar' | 'frame';
+export type RewardType = 'toy' | 'activity' | 'avatar' | 'frame' | 'decor' | 'mystery_box';
 
 export interface Task {
   id: string;
@@ -27,21 +27,21 @@ export interface PetStage {
 
 export interface PetSpecies {
   id: string;
-  name: string; // Tên loài (chỉ phụ huynh thấy)
+  name: string;
   stages: PetStage[];
   isCustom?: boolean;
-  cost?: number; // Giá tiền để mua loài này
+  cost?: number;
 }
 
 export interface PetState {
-  id: string; // ID riêng của từng con thú cưng
+  id: string;
   speciesId: string;
-  name?: string; // Tên riêng do bé đặt (optional)
+  name?: string;
   level: number;
   xp: number;
   maxXp: number;
   mood: number;
-  hunger: number; // 0-100: 0 là đói lả, 100 là no căng
+  hunger: number;
 }
 
 export interface FoodItem {
@@ -49,7 +49,7 @@ export interface FoodItem {
   name: string;
   cost: number;
   xp: number;
-  hungerDetails: number; // Độ no cộng thêm
+  hungerDetails: number;
   icon: string;
 }
 
@@ -59,9 +59,10 @@ export interface UserData {
   activeAvatar: string;
   activeFrame: string;
   inventory: string[];
-  pets: PetState[]; // Thay đổi từ pet đơn sang mảng pets
-  activePetId: string; // ID của thú cưng đang chọn
-  pin: string; // Mật khẩu phụ huynh
-  isTestingMode?: boolean; // Chế độ kiểm thử (hiện nút hack)
-  googleScriptUrl?: string; // URL của Google Apps Script
+  activeDecors: string[]; // Danh sách ID các đồ nội thất đang đặt trong phòng
+  pets: PetState[];
+  activePetId: string;
+  pin: string;
+  isTestingMode?: boolean;
+  googleScriptUrl?: string;
 }
