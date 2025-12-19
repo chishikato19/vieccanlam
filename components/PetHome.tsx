@@ -1,19 +1,20 @@
 
 import React, { useState, useEffect } from 'react';
-import { Zap, Utensils, X, Coins, Heart, Plus, Trash2 } from 'lucide-react';
+import { Zap, Utensils, X, Coins, Heart, Plus, Trash2, Home } from 'lucide-react';
 import { UserData, PetSpecies, FoodItem, Reward } from '../types';
 import { FOOD_ITEMS, FRAMES } from '../data';
 
 const PetHome = ({ 
   user, 
   speciesLibrary,
-  rewards, // Nhận thêm rewards từ props
+  rewards,
   onFeed,
   onEquip,
-  onRemoveItem, // Nhận hàm xóa item
+  onRemoveItem,
   onAddXp,
   onSwitchPet,
-  onAdopt
+  onAdopt,
+  onToggleDecor // Thêm prop để bật tắt nội thất
 }: { 
   user: UserData,
   speciesLibrary: Record<string, PetSpecies>,
@@ -23,249 +24,113 @@ const PetHome = ({
   onRemoveItem: (id: string) => void,
   onAddXp: () => void,
   onSwitchPet: (id: string) => void,
-  onAdopt: (speciesId: string) => void
+  onAdopt: (speciesId: string) => void,
+  onToggleDecor: (decorId: string) => void
 }) => {
+  const [view, setView] = useState<'pet' | 'room'>('pet');
   const [showFoodMenu, setShowFoodMenu] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
-  const [showAdoptMenu, setShowAdoptMenu] = useState(false);
   const [dialogue, setDialogue] = useState<string>('');
   
   const activePet = user.pets.find(p => p.id === user.activePetId) || user.pets[0];
   const species = speciesLibrary[activePet.speciesId] || speciesLibrary['dragon'];
-  
-  // Logic tìm giai đoạn hiện tại
   const currentStage = [...species.stages].reverse().find(s => activePet.level >= s.minLevel) || species.stages[0];
-  const nextStage = species.stages.find(s => s.minLevel > activePet.level);
 
-  // Hiệu ứng "Chat"
   useEffect(() => {
-    // Nếu thú cưng đói
-    if (activePet.hunger < 20) {
-       setDialogue("Đói quá... bụng kêu rột rột...");
-       return;
-    }
-
-    const randomMsg = currentStage.dialogue[Math.floor(Math.random() * currentStage.dialogue.length)];
-    setDialogue(randomMsg);
-    
+    const msgs = currentStage.dialogue;
+    setDialogue(msgs[Math.floor(Math.random() * msgs.length)]);
     const interval = setInterval(() => {
-      const msg = currentStage.dialogue[Math.floor(Math.random() * currentStage.dialogue.length)];
-      setDialogue(msg);
-    }, 8000);
-
+      setDialogue(msgs[Math.floor(Math.random() * msgs.length)]);
+    }, 10000);
     return () => clearInterval(interval);
-  }, [currentStage, activePet.level, activePet.hunger]);
+  }, [currentStage]);
+
+  const activeDecorItems = rewards.filter(r => user.activeDecors.includes(r.id));
 
   return (
     <div className="flex flex-col h-full relative">
-      <div className="flex-1 bg-gradient-to-b from-blue-200 to-green-100 rounded-b-[3rem] relative overflow-hidden shadow-inner p-4 flex flex-col items-center justify-center pb-24">
-         <div className="absolute top-10 left-10 text-white/40 text-6xl animate-float">☁️</div>
-         <div className="absolute top-20 right-10 text-white/40 text-4xl animate-float" style={{animationDelay: '1s'}}>☁️</div>
+      {/* TABS PET/ROOM */}
+      <div className="absolute top-4 left-4 z-20 flex gap-2">
+         <button onClick={() => setView('pet')} className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${view === 'pet' ? 'bg-white border-blue-500 shadow-md text-blue-600' : 'bg-white/50 border-white text-slate-500'}`}>🐾 Thú cưng</button>
+         <button onClick={() => setView('room')} className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${view === 'room' ? 'bg-white border-purple-500 shadow-md text-purple-600' : 'bg-white/50 border-white text-slate-500'}`}>🏠 Phòng bé</button>
+      </div>
 
-         {/* Dialogue Bubble */}
-         <div className="absolute top-12 z-10 bg-white px-4 py-2 rounded-2xl rounded-bl-none shadow-lg animate-pop max-w-[200px] text-center">
+      <div className="flex-1 bg-gradient-to-b from-blue-200 to-green-100 rounded-b-[3rem] relative overflow-hidden shadow-inner flex flex-col items-center justify-center pb-24 min-h-[400px]">
+         {/* Background Decor */}
+         <div className="absolute inset-0 pointer-events-none opacity-40">
+            {activeDecorItems.map(d => (
+                <div key={d.id} className="absolute text-5xl animate-float" style={{ 
+                    top: d.id === 'dec3' ? '10%' : d.id === 'dec4' ? '5%' : 'auto',
+                    bottom: d.id === 'dec1' ? '10%' : d.id === 'dec2' ? '5%' : 'auto',
+                    left: d.id === 'dec3' ? '10%' : d.id === 'dec5' ? '15%' : 'auto',
+                    right: d.id === 'dec4' ? '10%' : 'auto',
+                }}>
+                    {d.image}
+                </div>
+            ))}
+         </div>
+
+         <div className="absolute top-24 z-10 bg-white px-4 py-2 rounded-2xl rounded-bl-none shadow-lg animate-pop">
             <p className="text-sm font-bold text-slate-700">{dialogue}</p>
          </div>
 
-         {/* PET IMAGE */}
-         <div 
-           className="text-[8rem] filter drop-shadow-2xl transition-all duration-500 cursor-pointer hover:scale-110 active:scale-95 animate-float relative"
-           onClick={() => setDialogue("Ôm cái nào! ❤️")}
-         >
+         <div className="text-[8rem] filter drop-shadow-2xl transition-all duration-500 animate-float relative">
             {currentStage.image}
-            {activePet.hunger < 20 && (
-               <div className="absolute -top-2 -right-2 text-3xl animate-bounce">🆘</div>
-            )}
          </div>
 
-         {/* STATS + CHEAT XP BUTTON */}
-         <div className="bg-white/60 backdrop-blur rounded-2xl p-3 w-full max-w-xs mt-6 border border-white shadow-sm relative">
-            {user.isTestingMode && (
-               <button 
-                  onClick={onAddXp}
-                  className="absolute -right-2 -top-2 bg-blue-500 text-white p-1 rounded-full shadow-lg z-10 active:scale-90 transition-transform"
-                  title="Hack: Tăng 100 XP"
-               >
-                  <Zap className="w-4 h-4" />
-               </button>
-            )}
-
+         <div className="bg-white/60 backdrop-blur rounded-2xl p-3 w-full max-w-xs mt-6 border border-white shadow-sm">
             <div className="flex justify-between items-end mb-1">
                <span className="font-bold text-slate-700">{currentStage.name}</span>
                <span className="text-xs font-bold bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">Lv {activePet.level}</span>
             </div>
-            
-            {/* XP BAR */}
             <div className="relative w-full h-4 bg-slate-200 rounded-full overflow-hidden mb-2">
-               <div 
-                 className="absolute top-0 left-0 h-full bg-gradient-to-r from-green-400 to-green-500 transition-all duration-500"
-                 style={{ width: `${Math.min((activePet.xp / activePet.maxXp) * 100, 100)}%` }}
-               />
-               <p className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-slate-600">
-                  XP: {activePet.xp}/{activePet.maxXp}
-               </p>
+               <div className="absolute top-0 left-0 h-full bg-green-500 transition-all" style={{ width: `${(activePet.xp / activePet.maxXp) * 100}%` }} />
             </div>
-
-            {/* HUNGER BAR */}
             <div className="flex items-center gap-2">
-               <div className="w-5 h-5 flex items-center justify-center bg-orange-100 rounded-full text-xs">🍗</div>
                <div className="relative flex-1 h-3 bg-slate-200 rounded-full overflow-hidden">
-                  <div 
-                    className={`absolute top-0 left-0 h-full transition-all duration-500 ${activePet.hunger < 30 ? 'bg-red-500 animate-pulse' : 'bg-orange-400'}`}
-                    style={{ width: `${activePet.hunger}%` }}
-                  />
+                  <div className="absolute top-0 left-0 h-full bg-orange-400 transition-all" style={{ width: `${activePet.hunger}%` }} />
                </div>
-               <span className="text-[9px] font-bold text-slate-500 w-6 text-right">{Math.floor(activePet.hunger)}%</span>
-            </div>
-
-            {nextStage && (
-              <p className="text-[10px] text-slate-500 mt-2 text-center italic">
-                 Lv {nextStage.minLevel} ➜ <span className="font-bold">???</span>
-              </p>
-            )}
-         </div>
-
-         {/* PET COLLECTION LIST (BOTTOM OF PET AREA) */}
-         <div className="absolute bottom-4 left-0 right-0 px-4">
-            <div className="bg-white/40 backdrop-blur-md rounded-2xl p-2 flex gap-2 overflow-x-auto hide-scrollbar snap-x">
-               {/* List owned pets */}
-               {user.pets.map(p => {
-                  const s = speciesLibrary[p.speciesId];
-                  const stage = [...s.stages].reverse().find(st => p.level >= st.minLevel) || s.stages[0];
-                  const isActive = p.id === activePet.id;
-                  return (
-                     <button
-                        key={p.id}
-                        onClick={() => onSwitchPet(p.id)}
-                        className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-2xl border-2 transition-all relative snap-center
-                           ${isActive ? 'bg-white border-blue-500 shadow-lg scale-110 z-10' : 'bg-white/60 border-transparent opacity-70 hover:opacity-100'}`}
-                     >
-                        {stage.image}
-                        {p.hunger < 20 && <span className="absolute -top-1 -right-1 flex h-2 w-2 bg-red-500 rounded-full"></span>}
-                     </button>
-                  )
-               })}
-               
-               {/* Add Pet Button */}
-               <button 
-                  onClick={() => setShowAdoptMenu(true)}
-                  className="flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-slate-500 border-2 border-dashed border-slate-300 bg-white/40 hover:bg-white transition-all snap-center"
-               >
-                  <Plus className="w-5 h-5" />
-               </button>
+               <span className="text-[9px] font-bold text-slate-500">{Math.floor(activePet.hunger)}%</span>
             </div>
          </div>
       </div>
 
       <div className="p-4 grid grid-cols-2 gap-3 -mt-6 z-10">
-         <button 
-           onClick={() => setShowFoodMenu(true)}
-           className="bg-white p-3 rounded-2xl shadow-lg border-2 border-orange-100 flex items-center justify-center gap-2 hover:bg-orange-50 active:scale-95 transition-all"
-         >
+         <button onClick={() => setShowFoodMenu(true)} className="bg-white p-3 rounded-2xl shadow-lg border-2 border-orange-100 flex items-center gap-2 hover:bg-orange-50 transition-all">
             <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center text-xl">🍖</div>
             <div className="text-left">
-               <p className="font-bold text-slate-700">Cho ăn</p>
-               <p className="text-[10px] text-slate-400">Tăng XP & No</p>
+               <p className="font-bold text-slate-700 text-sm">Cho ăn</p>
+               <p className="text-[10px] text-slate-400">Tăng XP</p>
             </div>
          </button>
 
-         <button 
-           onClick={() => setShowInventory(true)}
-           className="bg-white p-3 rounded-2xl shadow-lg border-2 border-purple-100 flex items-center justify-center gap-2 hover:bg-purple-50 active:scale-95 transition-all"
-         >
+         <button onClick={() => setShowInventory(true)} className="bg-white p-3 rounded-2xl shadow-lg border-2 border-purple-100 flex items-center gap-2 hover:bg-purple-50 transition-all">
             <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-xl">🎒</div>
             <div className="text-left">
-               <p className="font-bold text-slate-700">Tủ đồ</p>
-               <p className="text-[10px] text-slate-400">Đổi Avatar</p>
+               <p className="font-bold text-slate-700 text-sm">Tủ đồ</p>
+               <p className="text-[10px] text-slate-400">Trang trí</p>
             </div>
          </button>
       </div>
 
       {showFoodMenu && (
-        <div className="absolute inset-0 bg-black/20 backdrop-blur-sm z-20 flex items-end">
-           <div className="bg-white w-full rounded-t-3xl p-5 animate-pop shadow-2xl">
-              <div className="flex justify-between items-center mb-4">
-                 <h3 className="font-bold text-lg flex items-center gap-2">
-                    <Utensils className="w-5 h-5 text-orange-500" />
-                    Cửa hàng thức ăn
-                 </h3>
-                 <button onClick={() => setShowFoodMenu(false)} className="bg-slate-100 p-2 rounded-full"><X className="w-4 h-4"/></button>
-              </div>
-              
+        <div className="absolute inset-0 bg-black/20 backdrop-blur-sm z-30 flex items-end" onClick={() => setShowFoodMenu(false)}>
+           <div className="bg-white w-full rounded-t-3xl p-5 animate-pop shadow-2xl" onClick={e => e.stopPropagation()}>
+              <h3 className="font-bold text-lg mb-4">Cửa hàng đồ ăn</h3>
               <div className="grid grid-cols-4 gap-2">
-                 {FOOD_ITEMS.map(food => {
-                    const canAfford = user.balance >= food.cost;
-                    return (
-                      <button 
-                        key={food.id}
-                        disabled={!canAfford}
-                        onClick={() => { onFeed(food); }}
-                        className={`flex flex-col items-center p-2 rounded-xl border-2 transition-all relative overflow-hidden
-                           ${canAfford ? 'border-slate-100 bg-slate-50 hover:border-orange-200' : 'opacity-50 border-transparent'}`}
-                      >
-                         <div className="text-3xl mb-1">{food.icon}</div>
-                         <div className="text-[10px] font-bold text-slate-600 mb-1">{food.name}</div>
-                         <div className="bg-yellow-100 px-2 py-0.5 rounded text-[10px] font-bold text-yellow-800 flex items-center gap-1">
-                            <Coins className="w-3 h-3" /> {food.cost}
-                         </div>
-                         <div className="absolute top-1 right-1 text-[8px] bg-green-100 text-green-700 px-1 rounded">+{food.hungerDetails}% No</div>
-                      </button>
-                    )
-                 })}
+                 {FOOD_ITEMS.map(f => (
+                    <button key={f.id} onClick={() => onFeed(f)} className="flex flex-col items-center p-2 rounded-xl border border-slate-100 bg-slate-50">
+                       <div className="text-3xl mb-1">{f.icon}</div>
+                       <div className="text-[10px] font-bold">{f.cost} xu</div>
+                    </button>
+                 ))}
               </div>
            </div>
         </div>
       )}
 
-      {showAdoptMenu && (
-        <div className="absolute inset-0 bg-white z-30 animate-fade-in flex flex-col">
-            <div className="p-4 border-b flex justify-between items-center bg-purple-50">
-               <h3 className="font-bold text-lg text-purple-900 flex items-center gap-2"><Heart className="w-5 h-5"/> Nhận nuôi thú cưng</h3>
-               <button onClick={() => setShowAdoptMenu(false)} className="bg-white p-2 rounded-full shadow-sm"><X className="w-5 h-5"/></button>
-            </div>
-            
-            <div className="p-4 grid gap-4 overflow-y-auto">
-               <div className="bg-blue-50 p-3 rounded-xl text-xs text-blue-700 mb-2">
-                  <p>Bé có <strong>{user.balance} xu</strong>. Hãy chọn một "Quả trứng bí ẩn" nhé!</p>
-               </div>
-
-               {Object.values(speciesLibrary).map(s => {
-                  const ownedCount = user.pets.filter(p => p.speciesId === s.id).length;
-                  const canAfford = user.balance >= (s.cost || 0);
-                  
-                  return (
-                     <div key={s.id} className="bg-white border-2 border-slate-100 rounded-2xl p-4 flex items-center justify-between shadow-sm">
-                        <div className="flex items-center gap-4">
-                           {/* UPDATE: Show Egg and Generic Name */}
-                           <div className="text-4xl">{s.stages[0].image}</div>
-                           <div>
-                              <h4 className="font-bold text-slate-800">Trứng Bí Ẩn</h4>
-                              <p className="text-xs text-slate-500 italic">Sẽ nở ra con gì nhỉ?</p>
-                           </div>
-                        </div>
-                        <button 
-                           onClick={() => {
-                              if (!canAfford) return;
-                              if (confirm(`Bé có muốn nhận nuôi Trứng Bí Ẩn với giá ${s.cost || 0} xu không?`)) {
-                                 onAdopt(s.id);
-                                 setShowAdoptMenu(false);
-                              }
-                           }}
-                           disabled={!canAfford}
-                           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all
-                              ${canAfford ? 'bg-yellow-400 text-yellow-900 shadow-md active:scale-95' : 'bg-slate-100 text-slate-400'}`}
-                        >
-                           {s.cost === 0 ? 'Miễn phí' : `${s.cost} xu`}
-                        </button>
-                     </div>
-                  )
-               })}
-            </div>
-        </div>
-      )}
-
       {showInventory && (
-        <div className="absolute inset-0 bg-white z-30 animate-fade-in flex flex-col">
+        <div className="absolute inset-0 bg-white z-40 animate-fade-in flex flex-col">
             <div className="p-4 border-b flex justify-between items-center bg-purple-50">
                <h3 className="font-bold text-lg text-purple-900">Tủ đồ của bé</h3>
                <button onClick={() => setShowInventory(false)} className="bg-white p-2 rounded-full shadow-sm"><X className="w-5 h-5"/></button>
@@ -273,73 +138,25 @@ const PetHome = ({
             
             <div className="p-4 space-y-6 overflow-y-auto">
                 <div>
-                   <p className="text-sm font-bold text-slate-500 uppercase mb-3">Avatar</p>
-                   <div className="flex gap-4 flex-wrap">
-                      {/* FIX: Sử dụng danh sách rewards được truyền vào để tìm icon */}
-                      {['🐯', '🐻', '🐰', ...user.inventory.filter(id => id.startsWith('av'))].map((idOrIcon, idx) => {
-                         // Kiểm tra xem là default icon hay là reward ID
-                         const isDefault = ['🐯', '🐻', '🐰'].includes(idOrIcon);
-                         const reward = isDefault ? null : rewards.find(r => r.id === idOrIcon);
-                         const displayIcon = isDefault ? idOrIcon : (reward ? reward.image : '?');
-                         const itemId = isDefault ? idOrIcon : (reward ? reward.id : idOrIcon);
-
-                         return (
-                            <div key={idx} className="relative group">
-                              <button 
-                                onClick={() => onEquip('avatar', displayIcon)}
-                                className={`w-16 h-16 rounded-2xl text-3xl flex items-center justify-center border-2 transition-all
-                                  ${user.activeAvatar === displayIcon ? 'bg-blue-100 border-blue-500 shadow-md ring-2 ring-blue-200' : 'bg-slate-50 border-slate-200'}`}
-                              >
-                                  {displayIcon}
-                              </button>
-                              {user.isTestingMode && !isDefault && (
-                                <button 
-                                  onClick={(e) => { e.stopPropagation(); onRemoveItem(itemId); }}
-                                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-sm hover:bg-red-600"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </button>
-                              )}
-                            </div>
-                         );
-                      })}
+                   <p className="text-xs font-bold text-slate-400 uppercase mb-3">Đồ trang trí phòng</p>
+                   <div className="grid grid-cols-4 gap-3">
+                      {rewards.filter(r => r.type === 'decor' && user.inventory.includes(r.id)).map(r => (
+                        <button key={r.id} onClick={() => onToggleDecor(r.id)} className={`aspect-square rounded-2xl flex items-center justify-center text-3xl border-2 transition-all ${user.activeDecors.includes(r.id) ? 'bg-purple-100 border-purple-500 shadow-md' : 'bg-slate-50 border-slate-200'}`}>
+                           {r.image}
+                        </button>
+                      ))}
+                      {rewards.filter(r => r.type === 'decor' && user.inventory.includes(r.id)).length === 0 && <p className="col-span-4 text-center text-xs text-slate-400 py-4">Bé chưa mua đồ nội thất nào.</p>}
                    </div>
                 </div>
 
                 <div>
-                   <p className="text-sm font-bold text-slate-500 uppercase mb-3">Khung hình</p>
-                   <div className="flex gap-4 flex-wrap">
-                      {/* Logic hiển thị khung hình: Check ID trong FRAMES */}
-                      {['default', ...user.inventory.filter(id => FRAMES[id] || id.startsWith('fr') || id === 'gold' || id === 'rainbow')].map((styleKey, idx) => {
-                         // Fallback logic cho các phiên bản cũ hoặc ID đặc biệt
-                         let cssClass = FRAMES[styleKey];
-                         // Backward compatibility logic nếu cần (ví dụ id cũ là fr1, fr2 nhưng data.ts đã đổi)
-                         if (!cssClass) {
-                            if (styleKey.includes('fr1')) cssClass = FRAMES['gold'];
-                            else if (styleKey.includes('fr2')) cssClass = FRAMES['rainbow'];
-                            else cssClass = FRAMES['default'];
-                         }
-                         
-                         return (
-                            <div key={idx} className="relative group">
-                              <button 
-                                onClick={() => onEquip('frame', styleKey)}
-                                className={`w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center border-2 transition-all relative
-                                  ${user.activeFrame === styleKey ? 'border-purple-500 shadow-md' : 'border-slate-200'}`}
-                              >
-                                  <div className={`w-10 h-10 rounded-full border-2 bg-white ${cssClass}`}></div>
-                              </button>
-                              {user.isTestingMode && styleKey !== 'default' && (
-                                <button 
-                                  onClick={(e) => { e.stopPropagation(); onRemoveItem(styleKey); }}
-                                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-sm hover:bg-red-600"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </button>
-                              )}
-                            </div>
-                         );
-                      })}
+                   <p className="text-xs font-bold text-slate-400 uppercase mb-3">Avatar</p>
+                   <div className="grid grid-cols-4 gap-3">
+                      {['🐯', '🐻', '🐰', ...rewards.filter(r => r.type === 'avatar' && user.inventory.includes(r.id)).map(r => r.image)].map((img, i) => (
+                        <button key={i} onClick={() => onEquip('avatar', img)} className={`aspect-square rounded-2xl flex items-center justify-center text-3xl border-2 transition-all ${user.activeAvatar === img ? 'bg-blue-100 border-blue-500 shadow-md' : 'bg-slate-50 border-slate-200'}`}>
+                           {img}
+                        </button>
+                      ))}
                    </div>
                 </div>
             </div>
