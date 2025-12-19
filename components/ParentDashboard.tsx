@@ -57,6 +57,7 @@ const ParentDashboard = ({
   const [editingSpeciesId, setEditingSpeciesId] = useState<string | null>(null);
   const [newSpeciesName, setNewSpeciesName] = useState('');
   const [newSpeciesImages, setNewSpeciesImages] = useState(['🥚', '🐥', '🐓', '🦅']);
+  const [newSpeciesLevels, setNewSpeciesLevels] = useState([1, 5, 15, 30]);
 
   // Security State
   const [newPin, setNewPin] = useState('');
@@ -166,11 +167,14 @@ const ParentDashboard = ({
   const handleStartEditSpecies = (species: PetSpecies) => {
      setEditingSpeciesId(species.id);
      setNewSpeciesName(species.name);
-     // Lấy ảnh từ stages hoặc default nếu thiếu
      const images = species.stages.map(s => s.image);
-     // Đảm bảo có đủ 4 ảnh
+     const levels = species.stages.map(s => s.minLevel);
+     
      while(images.length < 4) images.push('?');
+     while(levels.length < 4) levels.push(levels[levels.length-1] + 10 || 40);
+     
      setNewSpeciesImages(images);
+     setNewSpeciesLevels(levels);
      setIsCreatingSpecies(true);
   };
 
@@ -179,6 +183,7 @@ const ParentDashboard = ({
      setEditingSpeciesId(null);
      setNewSpeciesName('');
      setNewSpeciesImages(['🥚', '🐥', '🐓', '🦅']);
+     setNewSpeciesLevels([1, 5, 15, 30]);
   };
 
   const submitSpecies = (e: React.FormEvent) => {
@@ -187,33 +192,29 @@ const ParentDashboard = ({
 
     let speciesToSave: PetSpecies;
 
+    const stages = [
+      { minLevel: newSpeciesLevels[0], image: newSpeciesImages[0], name: 'Trứng Bí Ẩn', dialogue: ['Chào mừng!', 'Thế giới rộng lớn quá!'] },
+      { minLevel: newSpeciesLevels[1], image: newSpeciesImages[1], name: 'Tập đi', dialogue: ['Chơi với tớ đi!', 'Đói quá!'] },
+      { minLevel: newSpeciesLevels[2], image: newSpeciesImages[2], name: 'Trưởng thành', dialogue: ['Sức mạnh!', 'Bảo vệ bạn!'] },
+      { minLevel: newSpeciesLevels[3], image: newSpeciesImages[3], name: 'Huyền thoại', dialogue: ['Ta là vô địch!', 'Cảm ơn đã nuôi nấng!'] }
+    ];
+
     if (editingSpeciesId) {
-        // Cập nhật loài đã có
-        const original = speciesLibrary[editingSpeciesId];
         speciesToSave = {
-            ...original,
+            ...speciesLibrary[editingSpeciesId],
             name: newSpeciesName,
-            stages: original.stages.map((stage: any, index: number) => ({
-                ...stage,
-                image: newSpeciesImages[index] || stage.image // Cập nhật ảnh tương ứng
-            }))
+            stages: stages
         };
         onUpdateSpecies(speciesToSave);
         alert(`Đã cập nhật loài ${newSpeciesName}!`);
     } else {
-        // Tạo mới hoàn toàn
         const speciesId = 'custom_' + generateId();
         speciesToSave = {
           id: speciesId,
           name: newSpeciesName,
           isCustom: true,
           cost: 500,
-          stages: [
-            { minLevel: 1, image: newSpeciesImages[0], name: 'Trứng Bí Ẩn', dialogue: ['Chào mừng!', 'Thế giới rộng lớn quá!'] },
-            { minLevel: 5, image: newSpeciesImages[1], name: 'Tập đi', dialogue: ['Chơi với tớ đi!', 'Đói quá!'] },
-            { minLevel: 15, image: newSpeciesImages[2], name: 'Trưởng thành', dialogue: ['Sức mạnh!', 'Bảo vệ bạn!'] },
-            { minLevel: 30, image: newSpeciesImages[3], name: 'Huyền thoại', dialogue: ['Ta là vô địch!', 'Cảm ơn đã nuôi nấng!'] }
-          ]
+          stages: stages
         };
         onAddSpecies(speciesToSave);
         alert('Đã thêm loài vật mới thành công!');
@@ -691,28 +692,45 @@ const ParentDashboard = ({
                        />
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-4">
                        {[0, 1, 2, 3].map((idx) => (
-                          <div key={idx} className="bg-white p-2 rounded-xl border border-slate-100 text-center">
-                             <span className="text-[10px] text-slate-400 block mb-1">
-                                {idx === 0 ? 'Trứng (Lv1)' : idx === 1 ? 'Bé con (Lv5)' : idx === 2 ? 'Lớn (Lv15)' : 'Thần (Lv30)'}
-                             </span>
-                             <div className="flex justify-center">
+                          <div key={idx} className="bg-white p-3 rounded-xl border border-slate-100 flex items-center justify-between gap-4">
+                             <div className="text-center">
+                                <span className="text-[10px] text-slate-400 block mb-1">
+                                   {idx === 0 ? 'Giai đoạn 1' : idx === 1 ? 'Giai đoạn 2' : idx === 2 ? 'Giai đoạn 3' : 'Giai đoạn 4'}
+                                </span>
+                                <div className="flex justify-center">
+                                   <input 
+                                     type="text"
+                                     className="w-12 h-12 text-center text-2xl border-2 border-slate-200 rounded-lg focus:border-blue-400 outline-none"
+                                     value={newSpeciesImages[idx]}
+                                     onChange={e => {
+                                        const newImgs = [...newSpeciesImages];
+                                        newImgs[idx] = e.target.value;
+                                        setNewSpeciesImages(newImgs);
+                                     }}
+                                   />
+                                </div>
+                             </div>
+                             
+                             <div className="flex-1">
+                                <label className="block text-[10px] font-bold text-slate-500 mb-1">Cấp độ yêu cầu (Level)</label>
                                 <input 
-                                  type="text"
-                                  className="w-12 h-12 text-center text-2xl border-2 border-slate-200 rounded-lg focus:border-blue-400 outline-none"
-                                  value={newSpeciesImages[idx]}
+                                  type="number"
+                                  min={idx === 0 ? 1 : newSpeciesLevels[idx-1] + 1}
+                                  className="w-full p-2 text-sm border-2 border-slate-200 rounded-lg outline-none focus:border-blue-400"
+                                  value={newSpeciesLevels[idx]}
                                   onChange={e => {
-                                     const newImgs = [...newSpeciesImages];
-                                     newImgs[idx] = e.target.value;
-                                     setNewSpeciesImages(newImgs);
+                                     const newLevs = [...newSpeciesLevels];
+                                     newLevs[idx] = Number(e.target.value);
+                                     setNewSpeciesLevels(newLevs);
                                   }}
                                 />
                              </div>
                           </div>
                        ))}
                     </div>
-                    <p className="text-xs text-slate-400 italic">Mẹo: Sử dụng bàn phím Emoji trên điện thoại để nhập hình ảnh.</p>
+                    <p className="text-xs text-slate-400 italic">Mẹo: Đặt cấp độ cao hơn cho các giai đoạn sau để bé có động lực phấn đấu.</p>
                     
                     <button 
                       type="submit" 
