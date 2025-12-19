@@ -350,4 +350,3 @@ const PetHome = ({
 };
 
 export default PetHome;
-
