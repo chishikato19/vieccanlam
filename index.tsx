@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ListTodo, Heart, ShoppingBag, Lock } from 'lucide-react';
+import { ListTodo, Heart, ShoppingBag, Lock, RotateCcw } from 'lucide-react';
 
 import { Task, Reward, PetSpecies, UserData, FoodItem, PetState } from './types';
 import { INITIAL_TASKS, INITIAL_REWARDS, INITIAL_PET_SPECIES } from './data';
@@ -161,6 +161,13 @@ const App = () => {
     setUser(prev => ({ ...prev, balance: prev.balance + points }));
   };
 
+  const handleRefreshDailyTasks = () => {
+    if (confirm("Làm mới tất cả nhiệm vụ hàng ngày để bé làm tiếp nhé?")) {
+      setTasks(prev => prev.map(t => t.isDaily ? { ...t, status: 'todo' } : t));
+      triggerConfetti();
+    }
+  };
+
   const handleBuyItem = (reward: Reward) => {
     if (user.balance < reward.cost) return;
     if (confirm(`Đổi ${reward.cost} xu lấy "${reward.title}" nhé?`)) {
@@ -304,9 +311,18 @@ const App = () => {
       <main className="flex-1 overflow-y-auto hide-scrollbar animate-fade-in relative">
         {activeTab === 'tasks' && (
           <div className="p-4 space-y-6">
-            <h2 className="font-bold text-slate-700 text-lg flex items-center gap-2">
-              <ListTodo className="w-5 h-5 text-blue-500" /> Nhiệm vụ hôm nay
-            </h2>
+            <div className="flex justify-between items-center">
+              <h2 className="font-bold text-slate-700 text-lg flex items-center gap-2">
+                <ListTodo className="w-5 h-5 text-blue-500" /> Nhiệm vụ hôm nay
+              </h2>
+              <button 
+                onClick={handleRefreshDailyTasks}
+                className="flex items-center gap-1 bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full text-xs font-bold hover:bg-blue-100 transition-colors border border-blue-100 active:scale-90"
+                title="Làm mới nhiệm vụ hàng ngày"
+              >
+                <RotateCcw className="w-3 h-3" /> Làm mới
+              </button>
+            </div>
             <div className="grid gap-3">
               {tasks.length === 0 ? <p className="text-center py-10 text-slate-400">Chưa có nhiệm vụ nào.</p> : tasks.map(task => <TaskCard key={task.id} task={task} onComplete={handleCompleteTask} />)}
             </div>
