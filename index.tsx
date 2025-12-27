@@ -23,7 +23,7 @@ const App = () => {
   const [speciesLibrary, setSpeciesLibrary] = useState<Record<string, PetSpecies>>(INITIAL_PET_SPECIES);
   
   const [user, setUser] = useState<UserData>({
-    name: 'Bé Bo & Bi',
+    name: 'Bé Yêu',
     balance: 0,
     activeAvatar: '🐯',
     activeFrame: 'default',
@@ -42,88 +42,56 @@ const App = () => {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const isFirstLoad = useRef(true);
 
-  // HUNGER DECAY LOGIC
+  // Load/Save Logic với Try-Catch bảo vệ
   useEffect(() => {
-    const hungerInterval = setInterval(() => {
-      setUser(currentUser => {
-        if (!currentUser.pets || currentUser.pets.length === 0) return currentUser;
-        
-        const updatedPets = currentUser.pets.map(p => {
-          const newHunger = Math.max(0, p.hunger - 0.5);
-          let newLevel = p.level;
-          let newMaxXp = p.maxXp;
-
-          if (p.hunger > 0 && newHunger === 0 && p.level > 1) {
-             newLevel = p.level - 1;
-             newMaxXp = calculateMaxXp(newLevel);
-             return { ...p, hunger: 50, level: newLevel, maxXp: newMaxXp };
-          }
-          return { ...p, hunger: newHunger };
-        });
-        return { ...currentUser, pets: updatedPets };
-      });
-    }, 5000);
-    return () => clearInterval(hungerInterval);
-  }, []);
-
-  // Load/Save Logic
-  useEffect(() => {
-    const savedUser = localStorage.getItem('kiddo_user_v5');
-    const savedTasks = localStorage.getItem('kiddo_tasks_v5');
-    const savedRewards = localStorage.getItem('kiddo_rewards_v5');
-    const savedSpecies = localStorage.getItem('kiddo_species_v5');
-    
-    if (savedUser) {
-      const parsedUser = JSON.parse(savedUser);
-      if (!parsedUser.pets || !Array.isArray(parsedUser.pets)) {
-         const initialPetId = generateId();
-         const oldPet = (parsedUser as any).pet || { speciesId: 'dragon', level: 1, xp: 0, maxXp: 100, mood: 100 };
-         parsedUser.pets = [{ ...oldPet, id: initialPetId, hunger: 100 }];
-         parsedUser.activePetId = initialPetId;
-         delete (parsedUser as any).pet;
+    try {
+      const savedUser = localStorage.getItem('kiddo_user_v5');
+      const savedTasks = localStorage.getItem('kiddo_tasks_v5');
+      const savedRewards = localStorage.getItem('kiddo_rewards_v5');
+      const savedSpecies = localStorage.getItem('kiddo_species_v5');
+      
+      if (savedUser) {
+        const parsedUser = JSON.parse(savedUser);
+        if (!parsedUser.pets || !Array.isArray(parsedUser.pets)) {
+           const initialPetId = generateId();
+           parsedUser.pets = [{ speciesId: 'dragon', level: 1, xp: 0, maxXp: 100, mood: 100, hunger: 100, id: initialPetId }];
+           parsedUser.activePetId = initialPetId;
+        }
+        setUser(parsedUser);
+      } else {
+        const initialPetId = generateId();
+        setUser(prev => ({
+          ...prev,
+          pets: [{ id: initialPetId, speciesId: 'dragon', level: 1, xp: 0, maxXp: 100, mood: 100, hunger: 100 }],
+          activePetId: initialPetId
+        }));
       }
-      setUser(parsedUser);
-    } else {
-      const initialPetId = generateId();
-      setUser({
-        name: 'Bé Yêu',
-        balance: 0,
-        activeAvatar: '🐯',
-        activeFrame: 'default',
-        inventory: ['default'],
-        pets: [{ id: initialPetId, speciesId: 'dragon', level: 1, xp: 0, maxXp: 100, mood: 100, hunger: 100 }],
-        activePetId: initialPetId,
-        pin: '0000',
-        isTestingMode: false
-      });
-    }
 
-    let finalTasks = INITIAL_TASKS;
-    if (savedTasks) {
-      const currentTasks = JSON.parse(savedTasks) as Task[];
-      const existingIds = new Set(currentTasks.map(t => t.id));
-      const newFromCode = INITIAL_TASKS.filter(t => !existingIds.has(t.id));
-      finalTasks = [...currentTasks, ...newFromCode];
-    }
-    setTasks(finalTasks);
+      if (savedTasks) {
+        const currentTasks = JSON.parse(savedTasks);
+        const existingIds = new Set(currentTasks.map((t: any) => t.id));
+        const newFromCode = INITIAL_TASKS.filter(t => !existingIds.has(t.id));
+        setTasks([...currentTasks, ...newFromCode]);
+      }
 
-    let finalRewards = INITIAL_REWARDS;
-    if (savedRewards) {
-      const currentRewards = JSON.parse(savedRewards) as Reward[];
-      const existingIds = new Set(currentRewards.map(r => r.id));
-      const newFromCode = INITIAL_REWARDS.filter(r => !existingIds.has(r.id));
-      finalRewards = [...currentRewards, ...newFromCode];
-    }
-    setRewards(finalRewards);
+      if (savedRewards) {
+        const currentRewards = JSON.parse(savedRewards);
+        const existingIds = new Set(currentRewards.map((r: any) => r.id));
+        const newFromCode = INITIAL_REWARDS.filter(r => !existingIds.has(r.id));
+        setRewards([...currentRewards, ...newFromCode]);
+      }
 
-    let finalSpecies = INITIAL_PET_SPECIES;
-    if (savedSpecies) {
-      const currentLib = JSON.parse(savedSpecies) as Record<string, PetSpecies>;
-      finalSpecies = { ...currentLib, ...INITIAL_PET_SPECIES };
+      if (savedSpecies) {
+        const currentLib = JSON.parse(savedSpecies);
+        setSpeciesLibrary({ ...currentLib, ...INITIAL_PET_SPECIES });
+      }
+    } catch (e) {
+      console.error("Lỗi khi tải dữ liệu:", e);
+      // Nếu lỗi, xóa cache để reset app về trạng thái ban đầu
+      localStorage.clear();
+    } finally {
+      setTimeout(() => { isFirstLoad.current = false; }, 500);
     }
-    setSpeciesLibrary(finalSpecies);
-    
-    setTimeout(() => { isFirstLoad.current = false; }, 1000);
   }, []);
 
   useEffect(() => {
@@ -179,13 +147,11 @@ const App = () => {
       alert("Phải có ít nhất 1 thú cưng để chơi bé nhé!");
       return;
     }
-    if (confirm("Bạn có chắc chắn muốn xóa thú cưng này không? Quá trình này không thể hoàn tác!")) {
+    if (confirm("Bạn có chắc chắn muốn xóa thú cưng này không?")) {
       setUser(prev => {
         const remainingPets = prev.pets.filter(p => p.id !== petId);
         let newActiveId = prev.activePetId;
-        if (prev.activePetId === petId) {
-          newActiveId = remainingPets[0].id;
-        }
+        if (prev.activePetId === petId) newActiveId = remainingPets[0].id;
         return { ...prev, pets: remainingPets, activePetId: newActiveId };
       });
     }
@@ -226,12 +192,18 @@ const App = () => {
   };
 
   const checkPin = () => {
-     if (inputPin === user.pin) { setIsParentMode(true); setShowParentGate(false); setInputPin(''); } else { alert("Mật khẩu không đúng!"); setInputPin(''); }
+     if (inputPin === user.pin) { setIsParentMode(true); setShowParentGate(false); setInputPin(''); } 
+     else { alert("Mật khẩu không đúng!"); setInputPin(''); }
   };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-24 max-w-md mx-auto relative shadow-2xl overflow-hidden font-nunito flex flex-col">
-      <Header user={user} onOpenSettings={() => setShowParentGate(true)} onAddMoney={() => setUser(p => ({...p, balance: p.balance + 1000}))} saveStatus={saveStatus} />
+      <Header 
+        user={user} 
+        onOpenSettings={() => setShowParentGate(true)} 
+        onAddMoney={() => setUser(p => ({...p, balance: p.balance + 1000}))} 
+        saveStatus={saveStatus} 
+      />
 
       {isParentMode && (
         <ParentDashboard 
@@ -250,7 +222,7 @@ const App = () => {
                <Lock className="w-12 h-12 text-slate-300 mx-auto mb-4" />
                <h3 className="font-bold text-lg mb-2">Khu vực Phụ huynh</h3>
                <p className="text-slate-500 mb-6 text-sm">Nhập mật khẩu để tiếp tục.</p>
-               <input type="password" maxLength={4} className="w-full text-center text-2xl tracking-[0.5em] p-3 border border-slate-200 rounded-xl mb-4 font-bold" placeholder="••••" autoFocus value={inputPin} onChange={(e) => setInputPin(e.target.value)} />
+               <input type="password" maxLength={4} className="w-full text-center text-2xl tracking-[0.5em] p-3 border border-slate-200 rounded-xl mb-4 font-bold outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••" autoFocus value={inputPin} onChange={(e) => setInputPin(e.target.value)} />
                <div className="flex gap-3">
                  <button onClick={() => { setShowParentGate(false); setInputPin(''); }} className="flex-1 py-2 rounded-xl bg-slate-100 font-bold text-slate-600">Hủy</button>
                  <button onClick={checkPin} className="flex-1 py-2 rounded-xl bg-blue-600 text-white font-bold">Mở khóa</button>
