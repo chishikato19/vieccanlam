@@ -101,7 +101,7 @@ const CloudSync = ({ user, tasks, rewards, speciesLibrary, onUpdateUser, onSyncD
           <p className="font-bold mb-1">Hướng dẫn nhanh:</p>
           <ol className="list-decimal ml-4 space-y-1">
             <li>Tạo một file Google Sheet mới.</li>
-            <li>Vào Extensions > Apps Script.</li>
+            <li>Vào Extensions - Apps Script.</li>
             <li>Dán mã Script xử lý (do admin cung cấp).</li>
             <li>Deploy dưới dạng Web App và cho phép truy cập Anyone.</li>
             <li>Copy URL và dán vào ô ở trên.</li>
