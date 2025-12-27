@@ -66,14 +66,13 @@ const App = () => {
     return () => clearInterval(hungerInterval);
   }, []);
 
-  // Load/Save Logic - CẢI TIẾN MERGE LOGIC
+  // Load/Save Logic
   useEffect(() => {
     const savedUser = localStorage.getItem('kiddo_user_v5');
     const savedTasks = localStorage.getItem('kiddo_tasks_v5');
     const savedRewards = localStorage.getItem('kiddo_rewards_v5');
     const savedSpecies = localStorage.getItem('kiddo_species_v5');
     
-    // 1. Load User
     if (savedUser) {
       const parsedUser = JSON.parse(savedUser);
       if (!parsedUser.pets || !Array.isArray(parsedUser.pets)) {
@@ -99,18 +98,15 @@ const App = () => {
       });
     }
 
-    // 2. Load & MERGE Tasks (Đảm bảo nhiệm vụ mới xuất hiện)
     let finalTasks = INITIAL_TASKS;
     if (savedTasks) {
       const currentTasks = JSON.parse(savedTasks) as Task[];
-      // Gộp: Giữ lại tasks cũ và thêm tasks mới từ code nếu chưa có ID đó
       const existingIds = new Set(currentTasks.map(t => t.id));
       const newFromCode = INITIAL_TASKS.filter(t => !existingIds.has(t.id));
       finalTasks = [...currentTasks, ...newFromCode];
     }
     setTasks(finalTasks);
 
-    // 3. Load & MERGE Rewards (Đảm bảo khung hình/avatar mới xuất hiện trong Shop)
     let finalRewards = INITIAL_REWARDS;
     if (savedRewards) {
       const currentRewards = JSON.parse(savedRewards) as Reward[];
@@ -120,11 +116,9 @@ const App = () => {
     }
     setRewards(finalRewards);
 
-    // 4. Load & MERGE Species (Cập nhật stages nếu code có thay đổi)
     let finalSpecies = INITIAL_PET_SPECIES;
     if (savedSpecies) {
       const currentLib = JSON.parse(savedSpecies) as Record<string, PetSpecies>;
-      // Ghi đè thông tin mặc định từ code vào dữ liệu cũ để cập nhật stages (hình ảnh tiến hóa)
       finalSpecies = { ...currentLib, ...INITIAL_PET_SPECIES };
     }
     setSpeciesLibrary(finalSpecies);
@@ -133,26 +127,11 @@ const App = () => {
   }, []);
 
   useEffect(() => {
+    if (isFirstLoad.current) return;
     localStorage.setItem('kiddo_user_v5', JSON.stringify(user));
     localStorage.setItem('kiddo_tasks_v5', JSON.stringify(tasks));
     localStorage.setItem('kiddo_rewards_v5', JSON.stringify(rewards));
     localStorage.setItem('kiddo_species_v5', JSON.stringify(speciesLibrary));
-  }, [user, tasks, rewards, speciesLibrary]);
-
-  // Cloud logic
-  useEffect(() => {
-    if (isFirstLoad.current || !user.googleScriptUrl) return;
-    setSaveStatus('saving');
-    const timer = setTimeout(async () => {
-      try {
-        await saveToCloud(user.googleScriptUrl, { user, tasks, rewards, speciesLibrary });
-        setSaveStatus('saved');
-        setTimeout(() => setSaveStatus('idle'), 2000);
-      } catch (e) {
-        setSaveStatus('error');
-      }
-    }, 3000);
-    return () => clearTimeout(timer);
   }, [user, tasks, rewards, speciesLibrary]);
 
   const handleCompleteTask = (taskId: string, points: number) => {
@@ -175,9 +154,7 @@ const App = () => {
       setUser(prev => ({
         ...prev,
         balance: prev.balance - reward.cost,
-        inventory: (reward.type === 'avatar' || reward.type === 'frame') 
-          ? [...prev.inventory, reward.id] 
-          : prev.inventory
+        inventory: [...prev.inventory, reward.id]
       }));
     }
   };
@@ -195,6 +172,23 @@ const App = () => {
         ...prev,
         inventory: prev.inventory.filter(id => id !== itemId)
      }));
+  };
+
+  const handleDeletePet = (petId: string) => {
+    if (user.pets.length <= 1) {
+      alert("Phải có ít nhất 1 thú cưng để chơi bé nhé!");
+      return;
+    }
+    if (confirm("Bạn có chắc chắn muốn xóa thú cưng này không? Quá trình này không thể hoàn tác!")) {
+      setUser(prev => {
+        const remainingPets = prev.pets.filter(p => p.id !== petId);
+        let newActiveId = prev.activePetId;
+        if (prev.activePetId === petId) {
+          newActiveId = remainingPets[0].id;
+        }
+        return { ...prev, pets: remainingPets, activePetId: newActiveId };
+      });
+    }
   };
 
   const handleFeedPet = (food: FoodItem) => {
@@ -217,9 +211,6 @@ const App = () => {
     });
   };
 
-  const handleAddSpecies = (newSpecies: PetSpecies) => setSpeciesLibrary(prev => ({ ...prev, [newSpecies.id]: newSpecies }));
-  const handleUpdateSpecies = (updatedSpecies: PetSpecies) => setSpeciesLibrary(prev => ({ ...prev, [updatedSpecies.id]: updatedSpecies }));
-
   const handleAdopt = (speciesId: string) => {
      const species = speciesLibrary[speciesId];
      if (!species || user.balance < (species.cost || 0)) return;
@@ -234,61 +225,21 @@ const App = () => {
      triggerConfetti();
   };
 
-  const handleUpdateActivePet = (updatedPet: PetState) => {
-     setUser(prev => ({ ...prev, pets: prev.pets.map(p => p.id === updatedPet.id ? updatedPet : p) }));
-  };
-
-  const handleSyncData = (data: any) => {
-     if (data.user) setUser(data.user);
-     if (data.tasks) setTasks(data.tasks);
-     if (data.rewards) setRewards(data.rewards);
-     if (data.speciesLibrary) setSpeciesLibrary(data.speciesLibrary);
-  };
-
-  const handleUpdateTask = (updatedTask: Task) => setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
-  const handleUpdateReward = (updatedReward: Reward) => setRewards(prev => prev.map(r => r.id === updatedReward.id ? updatedReward : r));
-  const handleCheatMoney = () => { setUser(prev => ({ ...prev, balance: prev.balance + 1000 })); triggerConfetti(); };
-  const handleCheatXp = () => {
-    setUser(prev => {
-       const updatedPets = prev.pets.map(p => {
-          if (p.id !== prev.activePetId) return p;
-          let newPet = { ...p };
-          newPet.xp += 100;
-          if (newPet.xp >= newPet.maxXp) {
-             newPet.level += 1;
-             newPet.xp -= newPet.maxXp;
-             newPet.maxXp = calculateMaxXp(newPet.level);
-             triggerConfetti(); 
-          }
-          return newPet;
-       });
-       return { ...prev, pets: updatedPets };
-    });
-  };
-
   const checkPin = () => {
      if (inputPin === user.pin) { setIsParentMode(true); setShowParentGate(false); setInputPin(''); } else { alert("Mật khẩu không đúng!"); setInputPin(''); }
   };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-24 max-w-md mx-auto relative shadow-2xl overflow-hidden font-nunito flex flex-col">
-      <Header user={user} onOpenSettings={() => setShowParentGate(true)} onAddMoney={handleCheatMoney} saveStatus={saveStatus} />
+      <Header user={user} onOpenSettings={() => setShowParentGate(true)} onAddMoney={() => setUser(p => ({...p, balance: p.balance + 1000}))} saveStatus={saveStatus} />
 
-      {(showParentGate || isParentMode) && isParentMode && (
+      {isParentMode && (
         <ParentDashboard 
           user={user} tasks={tasks} rewards={rewards} speciesLibrary={speciesLibrary}
-          onAddTask={(t: Task) => setTasks([...tasks, t])}
-          onUpdateTask={handleUpdateTask}
-          onDeleteTask={(id: string) => setTasks(tasks.filter(t => t.id !== id))}
-          onAddReward={(r: Reward) => setRewards([...rewards, r])}
-          onUpdateReward={handleUpdateReward}
-          onDeleteReward={(id: string) => setRewards(rewards.filter(r => r.id !== id))}
-          onUpdatePet={handleUpdateActivePet}
-          onAddSpecies={handleAddSpecies}
-          onUpdateSpecies={handleUpdateSpecies}
-          onUpdatePin={(p: string) => setUser({ ...user, pin: p })}
-          onUpdateUser={(u: UserData) => setUser(u)}
-          onSyncData={handleSyncData}
+          setTasks={setTasks} setRewards={setRewards} setSpeciesLibrary={setSpeciesLibrary}
+          onUpdateUser={setUser} onSyncData={setUser}
+          onDeletePet={handleDeletePet}
+          onRemoveFromInventory={handleRemoveFromInventory}
           onClose={() => setIsParentMode(false)}
         />
       )}
@@ -315,16 +266,12 @@ const App = () => {
               <h2 className="font-bold text-slate-700 text-lg flex items-center gap-2">
                 <ListTodo className="w-5 h-5 text-blue-500" /> Nhiệm vụ hôm nay
               </h2>
-              <button 
-                onClick={handleRefreshDailyTasks}
-                className="flex items-center gap-1 bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full text-xs font-bold hover:bg-blue-100 transition-colors border border-blue-100 active:scale-90"
-                title="Làm mới nhiệm vụ hàng ngày"
-              >
+              <button onClick={handleRefreshDailyTasks} className="flex items-center gap-1 bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full text-xs font-bold hover:bg-blue-100 border border-blue-100 active:scale-90 transition-all">
                 <RotateCcw className="w-3 h-3" /> Làm mới
               </button>
             </div>
             <div className="grid gap-3">
-              {tasks.length === 0 ? <p className="text-center py-10 text-slate-400">Chưa có nhiệm vụ nào.</p> : tasks.map(task => <TaskCard key={task.id} task={task} onComplete={handleCompleteTask} />)}
+              {tasks.map(task => <TaskCard key={task.id} task={task} onComplete={handleCompleteTask} />)}
             </div>
           </div>
         )}
@@ -342,7 +289,7 @@ const App = () => {
         )}
 
         {activeTab === 'pet' && user.pets.length > 0 && (
-           <PetHome user={user} speciesLibrary={speciesLibrary} rewards={rewards} onFeed={handleFeedPet} onEquip={handleEquip} onRemoveItem={handleRemoveFromInventory} onAddXp={handleCheatXp} onSwitchPet={(id) => setUser({...user, activePetId: id})} onAdopt={handleAdopt} />
+           <PetHome user={user} speciesLibrary={speciesLibrary} rewards={rewards} onFeed={handleFeedPet} onEquip={handleEquip} onRemoveItem={handleRemoveFromInventory} onAddXp={() => {}} onSwitchPet={(id) => setUser({...user, activePetId: id})} onAdopt={handleAdopt} />
         )}
       </main>
 
@@ -359,7 +306,7 @@ const NavButton = ({ active, onClick, icon, label, color }: any) => {
   const colorClass = { blue: 'text-blue-600 bg-blue-50', yellow: 'text-yellow-600 bg-yellow-50', purple: 'text-purple-600 bg-purple-50' }[color as string] || 'text-slate-600';
   return (
     <button onClick={onClick} className={`flex flex-col items-center gap-1 transition-all duration-300 px-4 py-2 rounded-xl ${active ? `${colorClass} -translate-y-2 shadow-sm` : 'text-slate-400 hover:bg-slate-50'}`}>
-      <div className={`transition-transform duration-300 ${active ? 'scale-110' : ''}`}>{React.cloneElement(icon, { size: 24, strokeWidth: active ? 3 : 2 })}</div>
+      {React.cloneElement(icon, { size: 24 })}
       <span className={`text-[10px] font-bold ${active ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>{label}</span>
     </button>
   );
