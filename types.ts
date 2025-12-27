@@ -8,6 +8,19 @@ export interface Task {
   icon: string;
   status: 'todo' | 'pending' | 'done';
   isDaily: boolean;
+  // Thống kê cho bé
+  streak: number; 
+  totalCompletions: number;
+  totalSkips: number;
+}
+
+export interface Badge {
+  id: string;
+  name: string;
+  icon: string;
+  targetTaskId: string; // Danh hiệu gắn với nhiệm vụ nào
+  requiredCompletions: number; // Đạt được sau N lần làm
+  revocationThreshold: number; // Bị tước sau N lần không làm
 }
 
 export interface Reward {
@@ -27,21 +40,21 @@ export interface PetStage {
 
 export interface PetSpecies {
   id: string;
-  name: string; // Tên loài (chỉ phụ huynh thấy)
+  name: string;
   stages: PetStage[];
   isCustom?: boolean;
-  cost?: number; // Giá tiền để mua loài này
+  cost?: number;
 }
 
 export interface PetState {
-  id: string; // ID riêng của từng con thú cưng
+  id: string;
   speciesId: string;
-  name?: string; // Tên riêng do bé đặt (optional)
+  name?: string;
   level: number;
   xp: number;
   maxXp: number;
   mood: number;
-  hunger: number; // 0-100: 0 là đói lả, 100 là no căng
+  hunger: number;
 }
 
 export interface FoodItem {
@@ -49,7 +62,7 @@ export interface FoodItem {
   name: string;
   cost: number;
   xp: number;
-  hungerDetails: number; // Độ no cộng thêm
+  hungerDetails: number;
   icon: string;
 }
 
@@ -59,9 +72,11 @@ export interface UserData {
   activeAvatar: string;
   activeFrame: string;
   inventory: string[];
-  pets: PetState[]; // Thay đổi từ pet đơn sang mảng pets
-  activePetId: string; // ID của thú cưng đang chọn
-  pin: string; // Mật khẩu phụ huynh
-  isTestingMode?: boolean; // Chế độ kiểm thử (hiện nút hack)
-  googleScriptUrl?: string; // URL của Google Apps Script
+  pets: PetState[];
+  activePetId: string;
+  pin: string;
+  isTestingMode?: boolean;
+  googleScriptUrl?: string;
+  badges: string[]; // Danh sách ID danh hiệu bé đang sở hữu
+  badgeHistory: Record<string, { completions: number, skips: number }>; // Theo dõi tiến trình riêng cho danh hiệu
 }

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Star, CheckCircle2, Trash2, Pencil } from 'lucide-react';
+import { Star, CheckCircle2, Trash2, Pencil, Zap } from 'lucide-react';
 import { Task } from '../types';
 
 const TaskCard: React.FC<{ 
@@ -34,9 +34,16 @@ const TaskCard: React.FC<{
         </div>
 
         <div className="flex-1 min-w-0">
-          <h3 className={`font-bold text-lg leading-tight mb-1 truncate ${isDone ? 'text-green-800 line-through' : 'text-slate-800'}`}>
-            {task.title}
-          </h3>
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className={`font-bold text-lg leading-tight truncate ${isDone ? 'text-green-800 line-through' : 'text-slate-800'}`}>
+              {task.title}
+            </h3>
+            {task.streak > 0 && !isDone && (
+              <span className="flex items-center gap-0.5 bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full text-[10px] font-black animate-bounce">
+                <Zap className="w-3 h-3 fill-current" /> {task.streak} ngày
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-2 flex-wrap">
             <span className={`px-2 py-0.5 rounded-md text-xs font-bold flex items-center gap-1
               ${isDone ? 'bg-green-200 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
