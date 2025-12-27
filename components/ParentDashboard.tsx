@@ -7,19 +7,21 @@ import TaskManager from './parent/TaskManager';
 import RewardManager from './parent/RewardManager';
 import PetSpeciesManager from './parent/PetSpeciesManager';
 import CloudSync from './parent/CloudSync';
+import BadgeManager from './parent/BadgeManager';
 
 const ParentDashboard = ({ 
-  user, tasks, rewards, speciesLibrary,
-  onUpdateUser, setTasks, setRewards, setSpeciesLibrary,
+  user, tasks, rewards, speciesLibrary, badges,
+  onUpdateUser, setTasks, setRewards, setSpeciesLibrary, setBadges,
   onDeletePet, onRemoveFromInventory,
   onClose 
 }: any) => {
-  const [activeTab, setActiveTab] = useState<'general' | 'tasks' | 'rewards' | 'pet' | 'cloud'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'tasks' | 'badges' | 'rewards' | 'pet' | 'cloud'>('general');
 
   const onSyncData = (data: any) => {
     if (data.user) onUpdateUser(data.user);
     if (data.tasks) setTasks(data.tasks);
     if (data.rewards) setRewards(data.rewards);
+    if (data.badges) setBadges(data.badges);
     if (data.speciesLibrary) setSpeciesLibrary(data.speciesLibrary);
   };
 
@@ -31,9 +33,9 @@ const ParentDashboard = ({
       </div>
 
       <div className="flex gap-1 p-2 bg-slate-100 overflow-x-auto hide-scrollbar sticky top-[60px] z-20 shadow-sm">
-        {['general', 'tasks', 'rewards', 'pet', 'cloud'].map(tab => (
+        {['general', 'tasks', 'badges', 'rewards', 'pet', 'cloud'].map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab as any)} className={`flex-1 min-w-[80px] py-2 rounded-lg text-[10px] font-bold uppercase transition-all ${activeTab === tab ? 'bg-white shadow-md text-slate-800 scale-105' : 'text-slate-500'}`}>
-            {{ general: 'Cài đặt', tasks: 'Nhiệm vụ', rewards: 'Quà', pet: 'Thú cưng', cloud: 'Đám mây' }[tab]}
+            {{ general: 'Cài đặt', tasks: 'Nhiệm vụ', badges: 'Danh hiệu', rewards: 'Quà', pet: 'Thú cưng', cloud: 'Đám mây' }[tab]}
           </button>
         ))}
       </div>
@@ -48,7 +50,7 @@ const ParentDashboard = ({
           />
         )}
         {activeTab === 'tasks' && <TaskManager tasks={tasks} setTasks={setTasks} />}
-        {/* Fix: Remove user={user} prop as it is not defined in RewardManager's prop types */}
+        {activeTab === 'badges' && <BadgeManager badges={badges} setBadges={setBadges} tasks={tasks} />}
         {activeTab === 'rewards' && <RewardManager rewards={rewards} setRewards={setRewards} />}
         {activeTab === 'pet' && (
           <PetSpeciesManager 

@@ -1,5 +1,5 @@
 
-import { PetSpecies, Task, Reward, FoodItem } from './types';
+import { PetSpecies, Task, Reward, FoodItem, Badge } from './types';
 
 export const FRAMES: Record<string, string> = {
   'default': 'border-blue-200',
@@ -21,7 +21,7 @@ export const FRAMES: Record<string, string> = {
 
 export const COMMON_ICONS = [
   '🧹', '🛏️', '🦷', '📚', '🧸', '🚿', '🍽️', '✏️', '🎹', '⚽',
-  '🐕', '🗑️', '👕', '👟', '🎒', '💊', '🥛', '🍎', '🎨', '🚲'
+  '🐕', '🗑️', '👕', '👟', '🎒', '💊', '🥛', '🍎', '🎨', '🚲', '⏰', '🏆', '🥇', '🎖️'
 ];
 
 export const COMMON_REWARD_ICONS = [
@@ -30,10 +30,17 @@ export const COMMON_REWARD_ICONS = [
 ];
 
 export const INITIAL_TASKS: Task[] = [
-  { id: 't1', title: 'Đánh răng buổi sáng', points: 10, icon: '🪥', status: 'todo', isDaily: true },
-  { id: 't2', title: 'Gấp chăn màn', points: 20, icon: '🛏️', status: 'todo', isDaily: true },
-  { id: 't3', title: 'Học bài 30 phút', points: 50, icon: '📚', status: 'todo', isDaily: true },
-  { id: 't4', title: 'Tự giác đi ngủ đúng giờ', points: 30, icon: '💤', status: 'todo', isDaily: true },
+  { id: 't1', title: 'Đánh răng buổi sáng', points: 10, icon: '🪥', status: 'todo', isDaily: true, streak: 0, totalCompletions: 0, totalSkips: 0 },
+  { id: 't2', title: 'Gấp chăn màn', points: 20, icon: '🛏️', status: 'todo', isDaily: true, streak: 0, totalCompletions: 0, totalSkips: 0 },
+  { id: 't3', title: 'Học bài 30 phút', points: 50, icon: '📚', status: 'todo', isDaily: true, streak: 0, totalCompletions: 0, totalSkips: 0 },
+  { id: 't4', title: 'Tự giác đi ngủ đúng giờ', points: 30, icon: '💤', status: 'todo', isDaily: true, streak: 0, totalCompletions: 0, totalSkips: 0 },
+];
+
+export const INITIAL_BADGES: Badge[] = [
+  { id: 'b1', name: 'Dũng Sĩ Diệt Sâu Răng', icon: '🦷', targetTaskId: 't1', requiredCompletions: 7, revocationThreshold: 3 },
+  { id: 'b2', name: 'Phù Thủy Gọn Gàng', icon: '🛌', targetTaskId: 't2', requiredCompletions: 5, revocationThreshold: 2 },
+  { id: 'b3', name: 'Mọt Sách Thông Thái', icon: '📚', targetTaskId: 't3', requiredCompletions: 10, revocationThreshold: 3 },
+  { id: 'b4', name: 'Thần Đồng Đúng Giờ', icon: '⏰', targetTaskId: 't4', requiredCompletions: 7, revocationThreshold: 2 },
 ];
 
 export const INITIAL_REWARDS: Reward[] = [
@@ -65,7 +72,7 @@ export const INITIAL_PET_SPECIES: Record<string, PetSpecies> = {
     cost: 0,
     stages: [
       { minLevel: 1, image: '🥚', name: 'Trứng Bí Ẩn', dialogue: ['...', 'Lắc lắc...', 'Zzz...'] },
-      { minLevel: 5, image: '🦖', name: 'Khủng Long Con', dialogue: ['Gào!', 'Đói quá!', 'Chơi với em đi!'] },
+      { minLevel: 5, image: 'Rex', name: 'Khủng Long Con', dialogue: ['Gào!', 'Đói quá!', 'Chơi với em đi!'] },
       { minLevel: 15, image: '🐲', name: 'Rồng Chiến', dialogue: ['Ta là Rồng!', 'Bay lên nào!', 'Phùuuu lửa!'] },
       { minLevel: 30, image: '🔥', name: 'Rồng Thần', dialogue: ['Sức mạnh tối thượng!', 'Bất khả chiến bại!'] }
     ]

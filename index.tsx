@@ -1,12 +1,11 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ListTodo, Heart, ShoppingBag, Lock, RotateCcw } from 'lucide-react';
+import { ListTodo, Heart, ShoppingBag, Lock, RotateCcw, Award } from 'lucide-react';
 
-import { Task, Reward, PetSpecies, UserData, FoodItem, PetState } from './types';
-import { INITIAL_TASKS, INITIAL_REWARDS, INITIAL_PET_SPECIES } from './data';
+import { Task, Reward, PetSpecies, UserData, FoodItem, PetState, Badge } from './types';
+import { INITIAL_TASKS, INITIAL_REWARDS, INITIAL_PET_SPECIES, INITIAL_BADGES } from './data';
 import { triggerConfetti, generateId, calculateMaxXp } from './utils';
-import { saveToCloud } from './cloud';
 
 import Header from './components/Header';
 import TaskCard from './components/TaskCard';
@@ -14,12 +13,13 @@ import RewardCard from './components/RewardCard';
 import PetHome from './components/PetHome';
 import ParentDashboard from './components/ParentDashboard';
 
-// --- MAIN APP ---
-
 const App = () => {
   const [activeTab, setActiveTab] = useState<'tasks' | 'shop' | 'pet'>('tasks');
-  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
+  const [tasks, setTasks] = useState<Task[]>(() => {
+    return INITIAL_TASKS.map(t => ({ ...t, streak: 0, totalCompletions: 0, totalSkips: 0 }));
+  });
   const [rewards, setRewards] = useState<Reward[]>(INITIAL_REWARDS);
+  const [badges, setBadges] = useState<Badge[]>(INITIAL_BADGES);
   const [speciesLibrary, setSpeciesLibrary] = useState<Record<string, PetSpecies>>(INITIAL_PET_SPECIES);
   
   const [user, setUser] = useState<UserData>({
@@ -31,32 +31,27 @@ const App = () => {
     pets: [],
     activePetId: '',
     pin: '0000',
-    isTestingMode: false
+    isTestingMode: false,
+    badges: [],
+    badgeHistory: {}
   });
 
   const [showParentGate, setShowParentGate] = useState(false);
   const [isParentMode, setIsParentMode] = useState(false);
   const [shopFilter, setShopFilter] = useState<'all' | 'items' | 'cosmetics'>('items');
   const [inputPin, setInputPin] = useState('');
-  
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const isFirstLoad = useRef(true);
 
-  // Load/Save Logic với Try-Catch bảo vệ
   useEffect(() => {
     try {
-      const savedUser = localStorage.getItem('kiddo_user_v5');
-      const savedTasks = localStorage.getItem('kiddo_tasks_v5');
-      const savedRewards = localStorage.getItem('kiddo_rewards_v5');
-      const savedSpecies = localStorage.getItem('kiddo_species_v5');
+      const savedUser = localStorage.getItem('kiddo_user_v6');
+      const savedTasks = localStorage.getItem('kiddo_tasks_v6');
+      const savedRewards = localStorage.getItem('kiddo_rewards_v6');
+      const savedBadges = localStorage.getItem('kiddo_badges_v6');
+      const savedSpecies = localStorage.getItem('kiddo_species_v6');
       
       if (savedUser) {
         const parsedUser = JSON.parse(savedUser);
-        if (!parsedUser.pets || !Array.isArray(parsedUser.pets)) {
-           const initialPetId = generateId();
-           parsedUser.pets = [{ speciesId: 'dragon', level: 1, xp: 0, maxXp: 100, mood: 100, hunger: 100, id: initialPetId }];
-           parsedUser.activePetId = initialPetId;
-        }
         setUser(parsedUser);
       } else {
         const initialPetId = generateId();
@@ -67,28 +62,13 @@ const App = () => {
         }));
       }
 
-      if (savedTasks) {
-        const currentTasks = JSON.parse(savedTasks);
-        const existingIds = new Set(currentTasks.map((t: any) => t.id));
-        const newFromCode = INITIAL_TASKS.filter(t => !existingIds.has(t.id));
-        setTasks([...currentTasks, ...newFromCode]);
-      }
+      if (savedTasks) setTasks(JSON.parse(savedTasks));
+      if (savedRewards) setRewards(JSON.parse(savedRewards));
+      if (savedBadges) setBadges(JSON.parse(savedBadges));
+      if (savedSpecies) setSpeciesLibrary(JSON.parse(savedSpecies));
 
-      if (savedRewards) {
-        const currentRewards = JSON.parse(savedRewards);
-        const existingIds = new Set(currentRewards.map((r: any) => r.id));
-        const newFromCode = INITIAL_REWARDS.filter(r => !existingIds.has(r.id));
-        setRewards([...currentRewards, ...newFromCode]);
-      }
-
-      if (savedSpecies) {
-        const currentLib = JSON.parse(savedSpecies);
-        setSpeciesLibrary({ ...currentLib, ...INITIAL_PET_SPECIES });
-      }
     } catch (e) {
       console.error("Lỗi khi tải dữ liệu:", e);
-      // Nếu lỗi, xóa cache để reset app về trạng thái ban đầu
-      localStorage.clear();
     } finally {
       setTimeout(() => { isFirstLoad.current = false; }, 500);
     }
@@ -96,21 +76,101 @@ const App = () => {
 
   useEffect(() => {
     if (isFirstLoad.current) return;
-    localStorage.setItem('kiddo_user_v5', JSON.stringify(user));
-    localStorage.setItem('kiddo_tasks_v5', JSON.stringify(tasks));
-    localStorage.setItem('kiddo_rewards_v5', JSON.stringify(rewards));
-    localStorage.setItem('kiddo_species_v5', JSON.stringify(speciesLibrary));
-  }, [user, tasks, rewards, speciesLibrary]);
+    localStorage.setItem('kiddo_user_v6', JSON.stringify(user));
+    localStorage.setItem('kiddo_tasks_v6', JSON.stringify(tasks));
+    localStorage.setItem('kiddo_rewards_v6', JSON.stringify(rewards));
+    localStorage.setItem('kiddo_badges_v6', JSON.stringify(badges));
+    localStorage.setItem('kiddo_species_v6', JSON.stringify(speciesLibrary));
+  }, [user, tasks, rewards, badges, speciesLibrary]);
 
   const handleCompleteTask = (taskId: string, points: number) => {
     triggerConfetti();
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'done' } : t));
-    setUser(prev => ({ ...prev, balance: prev.balance + points }));
+    
+    // 1. Cập nhật Task Stats
+    setTasks(prev => prev.map(t => {
+      if (t.id === taskId) {
+        return { 
+          ...t, 
+          status: 'done', 
+          streak: t.streak + 1, 
+          totalCompletions: t.totalCompletions + 1 
+        };
+      }
+      return t;
+    }));
+
+    // 2. Cập nhật User Balance và Badge Progress
+    setUser(prev => {
+      const newBadgeHistory = { ...prev.badgeHistory };
+      const awardedBadges = [...prev.badges];
+
+      // Tìm các danh hiệu gắn với task này
+      badges.forEach(badge => {
+        if (badge.targetTaskId === taskId) {
+          const stats = newBadgeHistory[badge.id] || { completions: 0, skips: 0 };
+          const newCompletions = stats.completions + 1;
+          newBadgeHistory[badge.id] = { ...stats, completions: newCompletions, skips: 0 }; // Reset skips khi hoàn thành
+
+          // Cấp danh hiệu nếu đủ điều kiện và chưa có
+          if (newCompletions >= badge.requiredCompletions && !awardedBadges.includes(badge.id)) {
+            awardedBadges.push(badge.id);
+            alert(`🎉 Chúc mừng! Bé đã nhận được danh hiệu: ${badge.name} ${badge.icon}`);
+          }
+        }
+      });
+
+      return { 
+        ...prev, 
+        balance: prev.balance + points,
+        badges: awardedBadges,
+        badgeHistory: newBadgeHistory
+      };
+    });
   };
 
   const handleRefreshDailyTasks = () => {
-    if (confirm("Làm mới tất cả nhiệm vụ hàng ngày để bé làm tiếp nhé?")) {
-      setTasks(prev => prev.map(t => t.isDaily ? { ...t, status: 'todo' } : t));
+    if (confirm("Làm mới tất cả nhiệm vụ hàng ngày? Các nhiệm vụ chưa làm sẽ bị mất chuỗi nhé!")) {
+      const newBadgeHistory = { ...user.badgeHistory };
+      const currentBadges = [...user.badges];
+      let hasRevocation = false;
+
+      const updatedTasks = tasks.map(t => {
+        if (t.isDaily) {
+          if (t.status !== 'done') {
+            // Nhiệm vụ bị bỏ lỡ -> Skip++
+            const taskSkips = t.totalSkips + 1;
+            
+            // Kiểm tra thu hồi danh hiệu
+            badges.forEach(badge => {
+              if (badge.targetTaskId === t.id && currentBadges.includes(badge.id)) {
+                const stats = newBadgeHistory[badge.id] || { completions: 0, skips: 0 };
+                const newSkips = stats.skips + 1;
+                newBadgeHistory[badge.id] = { ...stats, skips: newSkips };
+
+                if (newSkips >= badge.revocationThreshold) {
+                  const idx = currentBadges.indexOf(badge.id);
+                  if (idx > -1) {
+                    currentBadges.splice(idx, 1);
+                    newBadgeHistory[badge.id].completions = 0; // Reset cả số lần hoàn thành để bé làm lại từ đầu
+                    hasRevocation = true;
+                  }
+                }
+              }
+            });
+
+            return { ...t, status: 'todo' as const, streak: 0, totalSkips: taskSkips };
+          }
+          return { ...t, status: 'todo' as const };
+        }
+        return t;
+      });
+
+      if (hasRevocation) {
+        alert("⚠️ Ôi không! Vì bé bỏ lỡ nhiệm vụ quá nhiều lần, một số danh hiệu đã bị tạm thu hồi. Bé hãy cố gắng làm đều đặn để lấy lại nhé!");
+      }
+
+      setTasks(updatedTasks);
+      setUser(prev => ({ ...prev, badges: currentBadges, badgeHistory: newBadgeHistory }));
       triggerConfetti();
     }
   };
@@ -142,21 +202,6 @@ const App = () => {
      }));
   };
 
-  const handleDeletePet = (petId: string) => {
-    if (user.pets.length <= 1) {
-      alert("Phải có ít nhất 1 thú cưng để chơi bé nhé!");
-      return;
-    }
-    if (confirm("Bạn có chắc chắn muốn xóa thú cưng này không?")) {
-      setUser(prev => {
-        const remainingPets = prev.pets.filter(p => p.id !== petId);
-        let newActiveId = prev.activePetId;
-        if (prev.activePetId === petId) newActiveId = remainingPets[0].id;
-        return { ...prev, pets: remainingPets, activePetId: newActiveId };
-      });
-    }
-  };
-
   const handleFeedPet = (food: FoodItem) => {
     if (user.balance < food.cost) return;
     setUser(prev => {
@@ -177,20 +222,6 @@ const App = () => {
     });
   };
 
-  const handleAdopt = (speciesId: string) => {
-     const species = speciesLibrary[speciesId];
-     if (!species || user.balance < (species.cost || 0)) return;
-     const newPetId = generateId();
-     const newPet: PetState = { id: newPetId, speciesId, level: 1, xp: 0, maxXp: 100, mood: 100, hunger: 100 };
-     setUser(prev => ({
-        ...prev,
-        balance: prev.balance - (species.cost || 0),
-        pets: [...prev.pets, newPet],
-        activePetId: newPetId
-     }));
-     triggerConfetti();
-  };
-
   const checkPin = () => {
      if (inputPin === user.pin) { setIsParentMode(true); setShowParentGate(false); setInputPin(''); } 
      else { alert("Mật khẩu không đúng!"); setInputPin(''); }
@@ -202,15 +233,15 @@ const App = () => {
         user={user} 
         onOpenSettings={() => setShowParentGate(true)} 
         onAddMoney={() => setUser(p => ({...p, balance: p.balance + 1000}))} 
-        saveStatus={saveStatus} 
+        saveStatus="idle" 
       />
 
       {isParentMode && (
         <ParentDashboard 
-          user={user} tasks={tasks} rewards={rewards} speciesLibrary={speciesLibrary}
-          setTasks={setTasks} setRewards={setRewards} setSpeciesLibrary={setSpeciesLibrary}
+          user={user} tasks={tasks} rewards={rewards} speciesLibrary={speciesLibrary} badges={badges}
+          setTasks={setTasks} setRewards={setRewards} setSpeciesLibrary={setSpeciesLibrary} setBadges={setBadges}
           onUpdateUser={setUser} onSyncData={setUser}
-          onDeletePet={handleDeletePet}
+          onDeletePet={(id: string) => {}} 
           onRemoveFromInventory={handleRemoveFromInventory}
           onClose={() => setIsParentMode(false)}
         />
@@ -234,6 +265,27 @@ const App = () => {
       <main className="flex-1 overflow-y-auto hide-scrollbar animate-fade-in relative">
         {activeTab === 'tasks' && (
           <div className="p-4 space-y-6">
+            {/* Badges Section for Kids */}
+            {user.badges.length > 0 && (
+              <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                  <Award className="w-4 h-4 text-yellow-500" /> Danh hiệu của bé
+                </h3>
+                <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
+                  {user.badges.map(bid => {
+                    const b = badges.find(x => x.id === bid);
+                    if (!b) return null;
+                    return (
+                      <div key={bid} className="flex flex-col items-center gap-1 shrink-0 bg-yellow-50 p-2 rounded-xl border border-yellow-100 min-w-[80px]">
+                        <span className="text-2xl">{b.icon}</span>
+                        <span className="text-[9px] font-black text-yellow-800 text-center leading-tight">{b.name}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-between items-center">
               <h2 className="font-bold text-slate-700 text-lg flex items-center gap-2">
                 <ListTodo className="w-5 h-5 text-blue-500" /> Nhiệm vụ hôm nay
@@ -261,7 +313,7 @@ const App = () => {
         )}
 
         {activeTab === 'pet' && user.pets.length > 0 && (
-           <PetHome user={user} speciesLibrary={speciesLibrary} rewards={rewards} onFeed={handleFeedPet} onEquip={handleEquip} onRemoveItem={handleRemoveFromInventory} onAddXp={() => {}} onSwitchPet={(id) => setUser({...user, activePetId: id})} onAdopt={handleAdopt} />
+           <PetHome user={user} speciesLibrary={speciesLibrary} rewards={rewards} onFeed={handleFeedPet} onEquip={handleEquip} onRemoveItem={handleRemoveFromInventory} onAddXp={() => {}} onSwitchPet={(id) => setUser({...user, activePetId: id})} onAdopt={(sid) => {}} />
         )}
       </main>
 

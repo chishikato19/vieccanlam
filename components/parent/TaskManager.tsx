@@ -20,7 +20,18 @@ const TaskManager = ({ tasks, setTasks }: { tasks: Task[], setTasks: (t: Task[])
     if (editingTask) {
       setTasks(tasks.map(t => t.id === editingTask.id ? { ...t, title, points, icon, isDaily } : t));
     } else {
-      const newTask: Task = { id: generateId(), title, points, icon, isDaily, status: 'todo' };
+      // Added missing fields streak, totalCompletions, and totalSkips
+      const newTask: Task = { 
+        id: generateId(), 
+        title, 
+        points, 
+        icon, 
+        isDaily, 
+        status: 'todo',
+        streak: 0,
+        totalCompletions: 0,
+        totalSkips: 0
+      };
       setTasks([...tasks, newTask]);
     }
     resetForm();
