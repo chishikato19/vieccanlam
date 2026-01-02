@@ -4,7 +4,7 @@ import { Cloud, Save, Download, Link2, Info } from 'lucide-react';
 import { UserData } from '../../types';
 import { loadFromCloud, saveToCloud } from '../../cloud';
 
-const CloudSync = ({ user, tasks, rewards, speciesLibrary, onUpdateUser, onSyncData }: any) => {
+const CloudSync = ({ user, tasks, rewards, speciesLibrary, badges, onUpdateUser, onSyncData }: any) => {
   const [scriptUrl, setScriptUrl] = useState(user.googleScriptUrl || '');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -17,10 +17,11 @@ const CloudSync = ({ user, tasks, rewards, speciesLibrary, onUpdateUser, onSyncD
     if (!scriptUrl) return alert("Vui lòng nhập URL trước!");
     setIsLoading(true);
     try {
-      await saveToCloud(scriptUrl, { user, tasks, rewards, speciesLibrary });
-      alert("Đã sao lưu dữ liệu lên đám mây!");
+      // Bao gồm badges vào payload để lưu trữ cấu hình danh hiệu
+      await saveToCloud(scriptUrl, { user, tasks, rewards, speciesLibrary, badges });
+      alert("Đã sao lưu toàn bộ dữ liệu (bao gồm Danh hiệu & Chuỗi ngày) lên đám mây!");
     } catch (e) {
-      alert("Lỗi sao lưu. Kiểm tra lại đường dẫn.");
+      alert("Lỗi sao lưu. Kiểm tra lại đường dẫn Google Script của bạn.");
     } finally {
       setIsLoading(false);
     }
@@ -51,7 +52,7 @@ const CloudSync = ({ user, tasks, rewards, speciesLibrary, onUpdateUser, onSyncD
       <div className="bg-blue-50 p-4 rounded-2xl border border-blue-200">
         <h3 className="font-bold text-blue-800 mb-2 flex items-center gap-2"><Cloud className="w-5 h-5"/> Đồng bộ Đám mây</h3>
         <p className="text-xs text-blue-600 mb-4 leading-relaxed">
-          Sử dụng Google Apps Script và Google Sheets để lưu trữ dữ liệu. Giúp bé có thể chơi trên nhiều thiết bị khác nhau.
+          Sử dụng Google Sheets để lưu trữ. Dữ liệu bao gồm: Nhiệm vụ, Quà tặng, Thú cưng và các **Danh hiệu** của bé.
         </p>
         
         <div className="space-y-3">
@@ -98,14 +99,9 @@ const CloudSync = ({ user, tasks, rewards, speciesLibrary, onUpdateUser, onSyncD
       <div className="bg-slate-100 p-4 rounded-2xl border border-slate-200 flex gap-3">
         <Info className="w-5 h-5 text-slate-400 shrink-0" />
         <div className="text-[11px] text-slate-500 leading-normal">
-          <p className="font-bold mb-1">Hướng dẫn nhanh:</p>
-          <ol className="list-decimal ml-4 space-y-1">
-            <li>Tạo một file Google Sheet mới.</li>
-            <li>Vào Extensions - Apps Script.</li>
-            <li>Dán mã Script xử lý (do admin cung cấp).</li>
-            <li>Deploy dưới dạng Web App và cho phép truy cập Anyone.</li>
-            <li>Copy URL và dán vào ô ở trên.</li>
-          </ol>
+          <p className="font-bold mb-1">Lưu ý quan trọng cho Google Script:</p>
+          <p className="mb-2">Mã Apps Script của bạn phải có khả năng xử lý JSON gửi từ Web App. Đảm bảo hàm <code>doPost(e)</code> của bạn lưu toàn bộ nội dung <code>e.postData.contents</code> vào một ô (Cell) hoặc dùng <code>PropertiesService</code>.</p>
+          <p className="italic text-[10px]">Chuỗi ngày (Streaks) và Lịch sử (badgeHistory) nằm trong đối tượng 'user' và 'tasks' nên sẽ tự động được lưu kèm.</p>
         </div>
       </div>
     </div>
