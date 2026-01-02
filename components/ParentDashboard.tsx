@@ -61,7 +61,17 @@ const ParentDashboard = ({
             onDeletePet={onDeletePet}
           />
         )}
-        {activeTab === 'cloud' && <CloudSync user={user} tasks={tasks} rewards={rewards} speciesLibrary={speciesLibrary} onUpdateUser={onUpdateUser} onSyncData={onSyncData} />}
+        {activeTab === 'cloud' && (
+          <CloudSync 
+            user={user} 
+            tasks={tasks} 
+            rewards={rewards} 
+            speciesLibrary={speciesLibrary} 
+            badges={badges} 
+            onUpdateUser={onUpdateUser} 
+            onSyncData={onSyncData} 
+          />
+        )}
       </div>
     </div>
   );
